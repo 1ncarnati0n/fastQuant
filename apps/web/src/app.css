@@ -1,0 +1,205 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Pretendard Variable", "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+}
+
+/* ── Light theme (default) ─────────────────────────────────── */
+:root {
+  /* Brand */
+  --primary:          #3182f6;
+  --primary-fore:     #ffffff;
+  --primary-soft:     color-mix(in srgb, #3182f6 12%, transparent);
+
+  /* Surfaces */
+  --background:       #f4f6f8;
+  --foreground:       #252b35;
+  --card:             #ffffff;
+  --card-foreground:  #191f28;
+
+  /* Muted */
+  --muted-bg:         #f0f2f5;
+  --muted-fore:       #848c98;
+
+  /* Lines */
+  --border:           #e9edf2;
+  --input:            #f2f4f6;
+
+  /* Semantic */
+  --success:          #0aa678;
+  --success-soft:     color-mix(in srgb, #0aa678 12%, transparent);
+  --destructive:      #f04452;
+  --destructive-soft: color-mix(in srgb, #f04452 12%, transparent);
+  --warning:          #f5a623;
+  --warning-soft:     color-mix(in srgb, #f5a623 12%, transparent);
+
+  /* Chart — Korean convention: up=red, down=blue */
+  --chart-bg:         #ffffff;
+  --chart-fore:       #89919d;
+  --chart-grid:       rgba(154, 165, 179, 0.18);
+  --chart-border:     #eef1f5;
+  --candle-up:        #f04452;
+  --candle-down:      #4788ff;
+
+  /* Radius scale */
+  --radius-xs:        4px;
+  --radius-sm:        6px;
+  --radius-md:        8px;
+  --radius-lg:        8px;
+  --radius-xl:        8px;
+  --radius-full:      9999px;
+
+  /* Shadows */
+  --shadow-sm:        0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md:        0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg:        0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-inset:     inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  /* Transitions */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --ease:     cubic-bezier(0.2, 0.75, 0.2, 1);
+
+  /* Typography scale (rem; theme-agnostic) */
+  --fs-2xs:  0.6875rem;  /* 11px  — micro labels, kbd hints, badges */
+  --fs-xs:   0.75rem;    /* 12px  — secondary meta, small captions */
+  --fs-sm:   0.8125rem;  /* 13px  — table cells, dense controls, chips */
+  --fs-base: 0.875rem;   /* 14px  — body, nav links, panel labels */
+  --fs-md:   0.95rem;    /* 15.2px — emphasized inline, settings labels */
+  --fs-lg:   1.0625rem;  /* 17px  — section subheads */
+  --fs-xl:   1.15rem;    /* 18.4px — panel/dock titles */
+  --fs-2xl:  1.4rem;     /* 22.4px — modal/page section titles */
+  --fs-3xl:  1.55rem;    /* 24.8px — hero quote price */
+
+  /* Page background */
+  --page-bg: #f4f6f8;
+
+  /* Backward-compat aliases */
+  --bg:           var(--background);
+  --surface:      var(--card);
+  --text:         var(--foreground);
+  --muted:        var(--muted-fore);
+  --line:         var(--border);
+  --line-soft:    color-mix(in srgb, var(--border) 55%, transparent);
+  --accent:       var(--primary);
+  --accent-soft:  var(--primary-soft);
+  --danger:       var(--destructive);
+  --danger-soft:  var(--destructive-soft);
+  --shadow:       var(--shadow-md);
+  --shadow-elevated: var(--shadow-lg);
+
+  font-family: "Pretendard Variable", "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+  color-scheme: light;
+}
+
+/* ── Dark theme ─────────────────────────────────────────────── */
+html.dark {
+  /* Brand */
+  --primary:          #4f8eff;
+  --primary-soft:     color-mix(in srgb, #4f8eff 14%, transparent);
+
+  /* Surfaces */
+  --background:       #080c14;
+  --foreground:       #d9e1ed;
+  --card:             #101620;
+  --card-foreground:  #d9e1ed;
+
+  /* Muted */
+  --muted-bg:         #18212f;
+  --muted-fore:       #8d97a8;
+
+  /* Lines */
+  --border:           #232d3d;
+  --input:            #151d2a;
+
+  /* Semantic */
+  --success:          #22c55e;
+  --success-soft:     color-mix(in srgb, #22c55e 14%, transparent);
+  --destructive:      #f04452;
+  --destructive-soft: color-mix(in srgb, #f04452 14%, transparent);
+  --warning:          #f59e0b;
+  --warning-soft:     color-mix(in srgb, #f59e0b 14%, transparent);
+
+  /* Chart */
+  --chart-bg:         #0d111b;
+  --chart-fore:       #8f98a8;
+  --chart-grid:       rgba(148, 163, 184, 0.14);
+  --chart-border:     #252d3a;
+  --candle-up:        #f04452;
+  --candle-down:      #4f8eff;
+
+  /* Shadows */
+  --shadow-sm:        0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md:        0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg:        0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-inset:     inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  --page-bg:
+    radial-gradient(circle at 20% -24%, rgba(60, 112, 220, 0.12) 0%, transparent 38%),
+    linear-gradient(180deg, #090e17 0%, #070b12 100%);
+
+  /* Backward-compat aliases */
+  --bg:           var(--background);
+  --surface:      var(--card);
+  --text:         var(--foreground);
+  --muted:        var(--muted-fore);
+  --line:         var(--border);
+  --line-soft:    color-mix(in srgb, var(--border) 55%, transparent);
+  --accent:       var(--primary);
+  --accent-soft:  var(--primary-soft);
+  --danger:       var(--destructive);
+  --danger-soft:  var(--destructive-soft);
+  --shadow:       var(--shadow-md);
+  --shadow-elevated: var(--shadow-lg);
+
+  color-scheme: dark;
+}
+
+/* ── Global reset ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 !important;
+  padding-right: 0 !important;
+  min-width: 320px;
+  min-height: 100dvh;
+  background: var(--page-bg);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button, input, select, textarea { font: inherit; }
+
+a { color: inherit; }
+
+button, a, input, select { -webkit-tap-highlight-color: transparent; }
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-fore) 40%, transparent);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--muted-fore); }
+
+/* Selection */
+::selection { background: color-mix(in srgb, var(--primary) 25%, transparent); }
+
+/* Drawing-tool cursor indicator */
+.chart-wrapper:has([data-active-tool]:not([data-active-tool="none"])) {
+  cursor: crosshair;
+}

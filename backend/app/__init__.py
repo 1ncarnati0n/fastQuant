@@ -1,0 +1,1 @@
+"""FastQuant FastAPI application package."""
