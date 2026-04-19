@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from app.models.market import Candle
+from app.models.market import Candle, FundamentalsResponse, MarketType
 
 BASE_URL = "https://openapi.koreainvestment.com:9443"
 KST = ZoneInfo("Asia/Seoul")
@@ -218,6 +218,18 @@ def parse_symbol(symbol: str) -> str:
     return code
 
 
+def parse_float_or_none(value: object) -> float | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text in ("0", "0.00", ""):
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
 def parse_float(value: object) -> float:
     if value is None:
         return 0.0
@@ -225,6 +237,67 @@ def parse_float(value: object) -> float:
         return float(str(value).strip() or "0")
     except ValueError:
         return 0.0
+
+
+async def fetch_quote(stock_code: str, app_key: str, app_secret: str) -> dict:
+    token = await get_token(app_key, app_secret)
+    return await request_kis(
+        "/uapi/domestic-stock/v1/quotations/inquire-price",
+        token,
+        app_key,
+        app_secret,
+        "FHKST01010100",
+        {"fid_cond_mrkt_div_code": "J", "fid_input_iscd": stock_code},
+    )
+
+
+async def fetch_stock_info(stock_code: str, app_key: str, app_secret: str) -> dict:
+    token = await get_token(app_key, app_secret)
+    return await request_kis(
+        "/uapi/domestic-stock/v1/quotations/search-stock-info",
+        token,
+        app_key,
+        app_secret,
+        "CTPF1002R",
+        {"PRDT_TYPE_CD": "300", "PDNO": stock_code},
+    )
+
+
+async def fetch_fundamentals(symbol: str, market: MarketType) -> FundamentalsResponse:
+    app_key, app_secret = load_credentials()
+    stock_code = parse_symbol(symbol)
+
+    quote_result, info_result = await asyncio.gather(
+        fetch_quote(stock_code, app_key, app_secret),
+        fetch_stock_info(stock_code, app_key, app_secret),
+        return_exceptions=True,
+    )
+
+    output: dict = quote_result.get("output", {}) if isinstance(quote_result, dict) else {}
+    info_output: dict = info_result.get("output", {}) if isinstance(info_result, dict) else {}
+
+    market_cap_oku = parse_float_or_none(output.get("hts_avls"))
+    dval = parse_float_or_none(output.get("hts_dval"))
+
+    short_name = (
+        info_output.get("hts_kor_isnm")
+        or info_output.get("prdt_name")
+        or None
+    )
+
+    return FundamentalsResponse(
+        symbol=symbol,
+        market=market,
+        short_name=short_name,
+        currency="KRW",
+        market_cap=market_cap_oku * 1e8 if market_cap_oku is not None else None,
+        trailing_pe=parse_float_or_none(output.get("per")),
+        price_to_book=parse_float_or_none(output.get("pbr")),
+        trailing_eps=parse_float_or_none(output.get("eps")),
+        dividend_yield=dval / 100 if dval is not None else None,
+        fifty_two_week_high=parse_float_or_none(output.get("w52_hgpr")),
+        fifty_two_week_low=parse_float_or_none(output.get("w52_lwpr")),
+    )
 
 
 def check_kis_error(payload: dict) -> None:

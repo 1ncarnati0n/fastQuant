@@ -13,9 +13,6 @@
     onSelectMainTab,
     onOpenSettings,
     onOpenPalette,
-    onOpenDockTab,
-    dockOpen = true,
-    activeDockTab = "watchlist",
   }: {
     analysis?: AnalysisResponse | null;
     fundamentals?: FundamentalsResponse | null;
@@ -26,16 +23,13 @@
     onSelectMainTab?: (tab: "chart" | "fundamentals") => void;
     onOpenSettings?: () => void;
     onOpenPalette?: () => void;
-    onOpenDockTab?: (tab: "watchlist" | "indicators" | "strategy" | "fundamentals" | "settings") => void;
-    dockOpen?: boolean;
-    activeDockTab?: "watchlist" | "indicators" | "strategy" | "fundamentals" | "settings";
   } = $props();
 
   const MARKET_META: Record<MarketType, { label: string; color: string }> = {
-    crypto:  { label: "코인", color: "#f59e0b" },
+    crypto:  { label: "코인", color: "var(--warning)" },
     usStock: { label: "미장", color: "var(--primary)" },
-    krStock: { label: "국장", color: "#ec4899" },
-    forex:   { label: "FX",   color: "#14b8a6" },
+    krStock: { label: "국장", color: "var(--market-kr)" },
+    forex:   { label: "FX",   color: "var(--market-fx)" },
   };
 
   const candles = $derived(analysis?.candles ?? []);
@@ -111,10 +105,15 @@
       title="심볼 검색 (⌘J)"
       aria-label="심볼 검색"
     >
-      <span class="symbol-logo">{symbol.slice(0, 2) || "FQ"}</span>
+      <span class="symbol-logo">{(market === "krStock" && fundamentals?.shortName ? fundamentals.shortName : symbol).slice(0, 2) || "FQ"}</span>
       <span class="symbol-copy">
         <span class="symbol-title">
-          <strong>{symbol || "심볼 선택"}</strong>
+          {#if market === "krStock" && fundamentals?.shortName}
+            <strong>{fundamentals.shortName}</strong>
+            <span class="symbol-code">{symbol}</span>
+          {:else}
+            <strong>{symbol || "심볼 선택"}</strong>
+          {/if}
           <span class="market-chip" style:--badge-color={meta.color}>{meta.label}</span>
         </span>
         <span class="price-line">
@@ -147,16 +146,6 @@
       <div class="metric compact"><span>거래대금</span><strong>{fmtVolume(fundamentals?.averageVolume)}</strong></div>
       <div class="metric compact"><span>시가총액</span><strong>{fmtMarketCap(fundamentals?.marketCap)}</strong></div>
     </div>
-
-    <div class="quick-actions">
-      <button type="button" class="round-btn" title="알림">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      </button>
-      <button type="button" class="round-btn" title="관심">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-9.33-8.2C.36 8.96 2.4 4.5 6.7 4.5c2.1 0 3.47 1.02 4.3 2.07.83-1.05 2.2-2.07 4.3-2.07 4.3 0 6.34 4.46 4.03 8.3C19 16.65 12 21 12 21Z"/></svg>
-      </button>
-      <button type="button" class="invest-btn">내 투자</button>
-    </div>
   </div>
 
   <nav class="tab-row" aria-label="앱 메뉴">
@@ -174,35 +163,6 @@
     >종목정보</button>
     <div class="main-actions">
       <ApiStatus compact />
-      <div class="panel-switcher" role="group" aria-label="우측 패널">
-        <button
-          type="button"
-          class="icon-btn panel-btn"
-          class:active={dockOpen && activeDockTab === "watchlist"}
-          onclick={() => onOpenDockTab?.("watchlist")}
-          title="관심종목"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h10" /></svg>
-        </button>
-        <button
-          type="button"
-          class="icon-btn panel-btn"
-          class:active={dockOpen && activeDockTab === "fundamentals"}
-          onclick={() => onOpenDockTab?.("fundamentals")}
-          title="펀더멘털"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" /><path d="M18 17V9M13 17V5M8 17v-4" /></svg>
-        </button>
-        <button
-          type="button"
-          class="icon-btn panel-btn"
-          class:active={dockOpen && activeDockTab === "strategy"}
-          onclick={() => onOpenDockTab?.("strategy")}
-          title="전략"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 19h16" /><path d="m8 15 3-3 3 2 5-7" /></svg>
-        </button>
-      </div>
       <button
         type="button"
         class="icon-btn"
@@ -271,7 +231,7 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: #1d4ed8;
+    background: var(--logo-bg);
     color: #fff;
     font-size: var(--fs-2xs);
     font-weight: 800;
@@ -300,9 +260,16 @@
     letter-spacing: -0.02em;
   }
 
+  .symbol-code {
+    color: var(--muted-fore);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+
   .market-chip {
     padding: 5px 9px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: var(--muted-bg);
     color: var(--foreground);
     font-size: var(--fs-xs);
@@ -335,18 +302,18 @@
   }
 
   .metrics {
-    display: grid;
-    grid-template-columns: minmax(260px, 1fr) repeat(2, minmax(88px, auto));
+    display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 0;
+    margin-left: auto;
     min-width: 0;
     overflow: hidden;
   }
 
   .metric {
     display: grid;
-    grid-template-columns: auto auto minmax(54px, 82px) auto;
+    grid-template-columns: auto auto 52px auto;
     align-items: center;
     gap: 6px;
     min-width: 0;
@@ -357,18 +324,21 @@
   }
 
   .metric.range-metric {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: grid;
+    grid-template-columns: 56px auto 52px auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 6px;
+    row-gap: 4px;
     min-width: 0;
   }
 
   .range-line {
-    display: grid;
-    grid-template-columns: 48px minmax(54px, auto) minmax(54px, 82px) minmax(54px, auto);
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
+    display: contents;
+  }
+
+  .range-line > span {
+    white-space: nowrap;
   }
 
   .metric.compact {
@@ -380,53 +350,26 @@
   }
 
   .metric strong {
-    color: #596171;
+    color: var(--metric-value);
     font-size: var(--fs-sm);
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    white-space: nowrap;
   }
 
   .metric i {
     height: 4px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     background:
       linear-gradient(90deg,
-        #e4e9f0 0%,
-        #e4e9f0 calc(var(--pos, 50%) - 1.5px),
-        #11a36a calc(var(--pos, 50%) - 1.5px),
-        #11a36a calc(var(--pos, 50%) + 1.5px),
-        #e4e9f0 calc(var(--pos, 50%) + 1.5px));
+        var(--range-track) 0%,
+        var(--range-track) calc(var(--pos, 50%) - 1.5px),
+        var(--range-needle) calc(var(--pos, 50%) - 1.5px),
+        var(--range-needle) calc(var(--pos, 50%) + 1.5px),
+        var(--range-track) calc(var(--pos, 50%) + 1.5px));
   }
 
-  .quick-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .round-btn,
-  .invest-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 34px;
-    border: 0;
-    border-radius: 8px;
-    background: var(--muted-bg);
-    color: #9aa3af;
-    cursor: pointer;
-  }
-
-  .round-btn {
-    width: 34px;
-  }
-
-  .invest-btn {
-    min-width: 74px;
-    padding: 0 12px;
-    color: var(--muted-fore);
-    font-size: var(--fs-sm);
-    font-weight: 700;
-  }
 
   .tab-row {
     display: flex;
@@ -440,11 +383,11 @@
   .nav-link {
     border: 0;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: transparent;
     font-size: var(--fs-base);
     font-weight: 700;
-    color: #333a45;
+    color: var(--nav-inactive);
     cursor: pointer;
     transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
   }
@@ -460,16 +403,6 @@
     gap: 8px;
     min-width: 0;
     margin-left: auto;
-  }
-
-  .panel-switcher {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    padding: 2px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--input);
   }
 
   .icon-btn {
@@ -492,18 +425,6 @@
     background: var(--primary-soft);
   }
 
-  .icon-btn.active {
-    color: var(--primary);
-    border-color: color-mix(in srgb, var(--primary) 44%, transparent);
-    background: var(--primary-soft);
-  }
-
-  .panel-btn {
-    width: 30px;
-    height: 30px;
-    border-color: transparent;
-    background: transparent;
-  }
 
   /* ── Responsive ── */
   @media (max-width: 1180px) {
@@ -511,13 +432,12 @@
       grid-template-columns: minmax(250px, 340px) minmax(0, 1fr);
     }
 
-    .quick-actions {
-      display: none;
-    }
 
     .metrics {
+      display: grid;
       grid-template-columns: repeat(3, minmax(96px, 1fr));
       row-gap: 8px;
+      margin-left: 0;
     }
 
     .metric.range-metric {
@@ -537,8 +457,10 @@
     }
 
     .metrics {
+      display: grid;
       grid-template-columns: 1fr 1fr;
       overflow: visible;
+      margin-left: 0;
     }
 
     .metric {
@@ -546,9 +468,10 @@
       padding: 8px 10px;
       border-left: 0;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: var(--radius-md);
       background: var(--surface);
     }
+
 
     .metric.range-metric {
       grid-column: 1 / -1;

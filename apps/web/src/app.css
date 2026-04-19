@@ -71,6 +71,17 @@
   --fs-2xl:  1.4rem;     /* 22.4px — modal/page section titles */
   --fs-3xl:  1.55rem;    /* 24.8px — hero quote price */
 
+  /* Market type accent colors */
+  --market-kr:        #ec4899;
+  --market-fx:        #14b8a6;
+
+  /* AppBar component tokens */
+  --logo-bg:          #1d4ed8;
+  --metric-value:     #596171;
+  --range-track:      #e4e9f0;
+  --range-needle:     #11a36a;
+  --nav-inactive:     #333a45;
+
   /* Page background */
   --page-bg: #f4f6f8;
 
@@ -139,6 +150,13 @@ html.dark {
   --page-bg:
     radial-gradient(circle at 20% -24%, rgba(60, 112, 220, 0.12) 0%, transparent 38%),
     linear-gradient(180deg, #090e17 0%, #070b12 100%);
+
+  /* AppBar component tokens (dark overrides) */
+  --logo-bg:          #2563eb;
+  --metric-value:     #6e7d92;
+  --range-track:      #1d2b3c;
+  --range-needle:     #22c55e;
+  --nav-inactive:     var(--muted-fore);
 
   /* Backward-compat aliases */
   --bg:           var(--background);
