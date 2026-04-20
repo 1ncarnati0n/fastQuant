@@ -169,7 +169,10 @@
   :global(.dlg-size-sm)  { width: min(calc(100% - 2rem), 360px); }
   :global(.dlg-size-md)  { width: min(calc(100% - 2rem), 500px); }
   :global(.dlg-size-lg)  { width: min(calc(100% - 2rem), 640px); }
-  :global(.dlg-size-xl)  { width: min(calc(100% - 2rem), 1120px); }
+  :global(.dlg-size-xl)  {
+    width: min(calc(100% - 2rem), 1120px);
+    height: min(calc(100vh - 4rem), 720px);
+  }
 
   :global(.dlg-pad-none .dlg-body) { padding: 0; }
   :global(.dlg-pad-md   .dlg-body) { padding: 14px 16px 16px; }
@@ -254,6 +257,7 @@
   }
 
   :global(.dlg-body) {
+    flex: 1;
     min-height: 0;
     overflow: auto;
   }

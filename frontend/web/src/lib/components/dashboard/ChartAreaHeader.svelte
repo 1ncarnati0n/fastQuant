@@ -84,22 +84,6 @@
       {/each}
     </div>
 
-    <button
-      type="button"
-      class="tool tool--label tool--indicator"
-      class:has-count={indicatorCount > 0}
-      onclick={onOpenIndicators}
-      title="보조지표"
-    >
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M4 19h16M7 16V9M12 16V5M17 16v-6" />
-      </svg>
-      <span>보조지표</span>
-      {#if indicatorCount > 0}
-        <span class="count-badge">{indicatorCount}</span>
-      {/if}
-    </button>
-
     <DropdownMenu items={chartTypeItems} triggerAriaLabel="차트 타입">
       {#snippet trigger({ isOpen })}
         <span class="tool" class:active={isOpen} title="차트 타입">
@@ -127,6 +111,22 @@
         <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
         <path d="M8 16H3v5" />
       </svg>
+    </button>
+
+    <button
+      type="button"
+      class="tool tool--label tool--indicator"
+      class:has-count={indicatorCount > 0}
+      onclick={onOpenIndicators}
+      title="보조지표"
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M4 19h16M7 16V9M12 16V5M17 16v-6" />
+      </svg>
+      <span>보조지표</span>
+      {#if indicatorCount > 0}
+        <span class="count-badge">{indicatorCount}</span>
+      {/if}
     </button>
   </div>
 

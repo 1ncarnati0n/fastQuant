@@ -14,7 +14,7 @@ export interface SlotDefinition {
   id: string;
   label: string;
   defaults: SlotStyle;
-  kind?: "line" | "histogram" | "marker";
+  kind?: "line" | "histogram" | "marker" | "area";
 }
 
 export interface SlotTemplate {
@@ -72,6 +72,7 @@ export const STYLE_TEMPLATES: Record<string, SlotTemplate> = {
       { id: "upper",  label: "상단 밴드", defaults: defaultLine("#7c3aed", 1) },
       { id: "middle", label: "중심선",    defaults: defaultLine("#64748b", 1, 2 as LineStyle) },
       { id: "lower",  label: "하단 밴드", defaults: defaultLine("#7c3aed", 1) },
+      { id: "fill",   label: "밴드 배경", defaults: { color: "#7c3aed", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 0.12 }, kind: "area" },
     ],
   },
   sma: { slots: [], isDynamic: true, dynamic: makeDynamic(SMA_PALETTE) },

@@ -483,13 +483,14 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    height: min(calc(100vh - 4rem), 700px);
+    height: 100%;
   }
 
   .panel {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    height: 100%;
     gap: 14px;
     padding: 14px 18px 18px;
   }
@@ -520,11 +521,12 @@
   }
 
   .panel__body--indicators {
+    flex: 1;
+    min-height: 0;
     border: 1px solid var(--line);
     border-radius: 10px;
     background: var(--input);
-    max-height: 340px;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .row {

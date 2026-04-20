@@ -68,8 +68,21 @@
     indicatorStyles.update(spec.key, slotId, { style });
   }
 
-  function setOpacity(slotId: string, opacity: number) {
-    indicatorStyles.update(spec.key, slotId, { opacity });
+  function clampOpacity(opacity: number, min = 0.15): number {
+    if (!Number.isFinite(opacity)) return min;
+    return Math.max(min, Math.min(1, opacity));
+  }
+
+  function opacityMin(kind: SlotDefinition["kind"]): number {
+    return kind === "area" ? 0.01 : 0.15;
+  }
+
+  function opacityStep(kind: SlotDefinition["kind"]): number {
+    return kind === "area" ? 0.01 : 0.05;
+  }
+
+  function setOpacity(slotId: string, opacity: number, min = 0.15) {
+    indicatorStyles.update(spec.key, slotId, { opacity: clampOpacity(opacity, min) });
   }
 
   function normalizeHex(raw: string): string | null {
@@ -129,6 +142,8 @@
             <span class="slot-preview" aria-hidden="true">
               {#if slot.kind === "histogram"}
                 <span class="preview-bar" style:background={toColor(style)} style:opacity={style.opacity}></span>
+              {:else if slot.kind === "area"}
+                <span class="preview-area" style:background={toColor(style)}></span>
               {:else if slot.kind === "marker"}
                 <span class="preview-dot" style:background={toColor(style)}></span>
               {:else}
@@ -202,28 +217,30 @@
             </div>
 
             <!-- Width -->
-            <div class="ctrl">
-              <span class="ctrl-label">선 두께</span>
-              <div class="width-group" role="radiogroup" aria-label="선 두께">
-                {#each LINE_WIDTH_OPTIONS as w}
-                  <button
-                    type="button"
-                    class="width-btn"
-                    class:is-active={style.width === w}
-                    role="radio"
-                    aria-checked={style.width === w}
-                    onclick={() => setWidth(slot.id, w)}
-                    title="{w}px"
-                  >
-                    <span class="width-bar" style:height="{w}px" style:background={toColor(style)}></span>
-                    <span class="width-num">{w}</span>
-                  </button>
-                {/each}
+            {#if slot.kind !== "area"}
+              <div class="ctrl">
+                <span class="ctrl-label">선 두께</span>
+                <div class="width-group" role="radiogroup" aria-label="선 두께">
+                  {#each LINE_WIDTH_OPTIONS as w}
+                    <button
+                      type="button"
+                      class="width-btn"
+                      class:is-active={style.width === w}
+                      role="radio"
+                      aria-checked={style.width === w}
+                      onclick={() => setWidth(slot.id, w)}
+                      title="{w}px"
+                    >
+                      <span class="width-bar" style:height="{w}px" style:background={toColor(style)}></span>
+                      <span class="width-num">{w}</span>
+                    </button>
+                  {/each}
+                </div>
               </div>
-            </div>
+            {/if}
 
             <!-- Line style -->
-            {#if slot.kind !== "histogram" && slot.kind !== "marker"}
+            {#if slot.kind !== "histogram" && slot.kind !== "marker" && slot.kind !== "area"}
               <div class="ctrl">
                 <span class="ctrl-label">선 스타일</span>
                 <div class="style-group" role="radiogroup" aria-label="선 스타일">
@@ -252,17 +269,32 @@
 
             <!-- Opacity -->
             <div class="ctrl ctrl-opacity">
-              <span class="ctrl-label">불투명도 <em>{Math.round(style.opacity * 100)}%</em></span>
-              <input
-                class="opacity-range"
-                type="range"
-                min="0.15"
-                max="1"
-                step="0.05"
-                value={style.opacity}
-                oninput={(e) => setOpacity(slot.id, Number((e.target as HTMLInputElement).value))}
-                style:--thumb={toColor(style)}
-              />
+              <span class="ctrl-label">불투명도</span>
+              <div class="opacity-control">
+                <input
+                  class="opacity-range"
+                  type="range"
+                  min={opacityMin(slot.kind)}
+                  max="1"
+                  step={opacityStep(slot.kind)}
+                  value={style.opacity}
+                  oninput={(e) => setOpacity(slot.id, Number((e.target as HTMLInputElement).value), opacityMin(slot.kind))}
+                  style:--thumb={toColor(style)}
+                />
+                <label class="opacity-input-wrap">
+                  <input
+                    class="opacity-input"
+                    type="number"
+                    min={Math.round(opacityMin(slot.kind) * 100)}
+                    max="100"
+                    step="1"
+                    value={Math.round(style.opacity * 100)}
+                    oninput={(e) => setOpacity(slot.id, Number((e.target as HTMLInputElement).value) / 100, opacityMin(slot.kind))}
+                    aria-label="{slot.label} 불투명도"
+                  />
+                  <span>%</span>
+                </label>
+              </div>
             </div>
 
             <button
@@ -374,6 +406,13 @@
     border-radius: 2px;
   }
 
+  .preview-area {
+    display: block;
+    width: 80px;
+    height: 14px;
+    border-radius: 4px;
+  }
+
   .preview-dot {
     display: block;
     width: 12px;
@@ -387,6 +426,10 @@
     grid-template-columns: auto auto 1fr auto auto;
     gap: 12px;
     align-items: center;
+  }
+
+  .slot-controls:has(.swatch-popover) {
+    align-items: start;
   }
 
   @media (max-width: 880px) {
@@ -405,22 +448,16 @@
     position: relative;
   }
 
+  .ctrl-color:has(.swatch-popover) {
+    grid-column: 1 / -1;
+  }
+
   .ctrl-label {
     font-size: var(--fs-2xs);
     font-weight: 700;
     color: var(--muted-fore);
     letter-spacing: 0.03em;
     text-transform: uppercase;
-  }
-
-  .ctrl-label em {
-    font-style: normal;
-    color: var(--foreground);
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-    text-transform: none;
-    letter-spacing: 0;
-    margin-left: 4px;
   }
 
   /* ── Color ─── */
@@ -450,12 +487,12 @@
   }
 
   .swatch-popover {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    z-index: 10;
+    position: static;
     display: grid;
     gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 2px;
     padding: 10px;
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -488,6 +525,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
   }
 
   .hex-label {
@@ -523,6 +561,16 @@
 
   .native-color::-webkit-color-swatch-wrapper { padding: 0; border-radius: 4px; }
   .native-color::-webkit-color-swatch          { border: 0; border-radius: 4px; }
+
+  @media (max-width: 520px) {
+    .swatch-grid {
+      grid-template-columns: repeat(5, 22px);
+    }
+
+    .hex-row {
+      flex-wrap: wrap;
+    }
+  }
 
   /* ── Width ─── */
   .width-group {
@@ -601,6 +649,13 @@
   }
 
   /* ── Opacity ─── */
+  .opacity-control {
+    display: grid;
+    grid-template-columns: minmax(90px, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+  }
+
   .opacity-range {
     -webkit-appearance: none;
     appearance: none;
@@ -614,6 +669,37 @@
     height: 4px;
     background: linear-gradient(90deg, transparent, var(--thumb, var(--primary)));
     border-radius: 2px;
+  }
+
+  .opacity-input-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 28px;
+    padding: 0 7px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--muted-fore);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+  }
+
+  .opacity-input {
+    width: 34px;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--foreground);
+    font: inherit;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .opacity-input::-webkit-outer-spin-button,
+  .opacity-input::-webkit-inner-spin-button {
+    margin: 0;
   }
 
   .opacity-range::-moz-range-track {

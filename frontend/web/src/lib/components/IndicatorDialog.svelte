@@ -27,7 +27,8 @@
   .panel-wrap {
     display: flex;
     flex-direction: column;
-    height: min(calc(100vh - 7rem), 760px);
+    min-height: 0;
+    height: 100%;
     overflow: hidden;
   }
 </style>

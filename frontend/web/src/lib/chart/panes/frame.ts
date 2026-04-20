@@ -26,6 +26,9 @@ export class PaneFrame {
 
 export interface PaneHandle extends OverlayHandle {
   paneIndex: number;
+  indicatorKey?: string;
+  label?: string;
+  value?: string;
 }
 
 /** Wraps a set of series as a removable pane handle, with optional style restyle. */
