@@ -34,6 +34,7 @@
   import { crosshair } from "$lib/stores/crosshair.svelte";
   import { drawing } from "$lib/stores/drawing.svelte";
   import { indicatorVisibility } from "$lib/stores/indicatorVisibility.svelte";
+  import { indicatorStyles } from "$lib/stores/indicatorStyles.svelte";
   import { workspace } from "$lib/stores/workspace.svelte";
   import {
     buildAnalysisDataKey,
@@ -364,6 +365,14 @@
     void compareData;
     void chartStore.compareSymbols;
     if (chart && lib && analysis) syncCompareOverlays();
+  });
+
+  // Re-apply indicator styles without tearing down series — keeps colors/widths
+  // in sync with the live style store and avoids flicker on edits.
+  $effect(() => {
+    void indicatorStyles.version;
+    overlays.forEach((h) => h.applyStyle?.());
+    paneHandles.forEach((h) => h.applyStyle?.());
   });
 
   function syncCandles() {

@@ -278,9 +278,6 @@
         onSelectMainTab={(tab) => (mainTab = tab)}
         onOpenSettings={() => openSettings("indicators")}
         onOpenPalette={() => (paletteOpen = true)}
-        onOpenDockTab={toggleDockTab}
-        dockOpen={workspace.dockOpen}
-        activeDockTab={workspace.dockTab}
       />
 
       <div

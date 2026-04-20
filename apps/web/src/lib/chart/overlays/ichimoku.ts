@@ -1,6 +1,9 @@
 import { LineSeries } from "lightweight-charts";
 import type { IChartApi, ISeriesApi } from "lightweight-charts";
 import { t, type OverlayHandle } from "./types";
+import { indicatorStyles, STYLE_TEMPLATES, toColor } from "$lib/stores/indicatorStyles.svelte";
+
+const KEY = "ichimoku";
 
 type IchimokuPoint = {
   time: number;
@@ -28,16 +31,12 @@ export function addIchimoku(
     priceLineVisible: false,
     lastValueVisible: false,
     crosshairMarkerVisible: false,
-    lineWidth: 1,
   } as const;
 
-  const seriesList: ISeriesApi<"Line">[] = [
-    chart.addSeries(LineSeries, { ...common, color: "#06b6d4", title: "Tenkan" }),     // conversion
-    chart.addSeries(LineSeries, { ...common, color: "#e879f9", title: "Kijun" }),      // base
-    chart.addSeries(LineSeries, { ...common, color: "#22c55e", lineWidth: 2, title: "Span A" }), // spanA (cloud)
-    chart.addSeries(LineSeries, { ...common, color: "#ef4444", lineWidth: 2, title: "Span B" }), // spanB (cloud)
-    chart.addSeries(LineSeries, { ...common, color: "#94a3b8", lineStyle: 2, title: "Lagging" }), // lagging
-  ];
+  const titles = ["Tenkan", "Kijun", "Span A", "Span B", "Lagging"];
+  const seriesList: ISeriesApi<"Line">[] = titles.map((title) =>
+    chart.addSeries(LineSeries, { ...common, title }),
+  );
 
   const keys: Array<keyof Omit<IchimokuPoint, "time">> = [
     "conversion", "base", "spanA", "spanB", "lagging",
@@ -47,7 +46,23 @@ export function addIchimoku(
     series.setData(nonNull(data, keys[i]).map((p) => ({ time: t(p.time), value: p.value })));
   });
 
+  const tpl = STYLE_TEMPLATES[KEY];
+
+  function applyStyle() {
+    tpl.slots.forEach((slot, i) => {
+      const s = indicatorStyles.resolve(KEY, slot);
+      seriesList[i].applyOptions({
+        color: toColor(s),
+        lineWidth: s.width,
+        lineStyle: s.style,
+      });
+    });
+  }
+
+  applyStyle();
+
   return {
     remove() { seriesList.forEach((s) => chart.removeSeries(s)); },
+    applyStyle,
   };
 }

@@ -19,7 +19,6 @@
     <IndicatorPanel
       {params}
       onParamsChange={(next) => { onParamsChange(next); }}
-      onClose={() => { open = false; }}
     />
   </div>
 </Dialog>

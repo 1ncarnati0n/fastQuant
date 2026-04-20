@@ -28,16 +28,18 @@ export interface PaneHandle extends OverlayHandle {
   paneIndex: number;
 }
 
-/** Wraps a set of series as a removable pane handle. */
+/** Wraps a set of series as a removable pane handle, with optional style restyle. */
 export function makePaneHandle(
   chart: IChartApi,
   paneIndex: number,
   series: import("lightweight-charts").ISeriesApi<import("lightweight-charts").SeriesType>[],
+  applyStyle?: () => void,
 ): PaneHandle {
   return {
     paneIndex,
     remove() {
       series.forEach((s) => chart.removeSeries(s));
     },
+    applyStyle,
   };
 }

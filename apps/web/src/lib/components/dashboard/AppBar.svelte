@@ -154,7 +154,7 @@
       class="nav-link"
       class:active={activeMainTab === "chart"}
       onclick={() => onSelectMainTab?.("chart")}
-    >차트 · 호가</button>
+    >종목차트</button>
     <button
       type="button"
       class="nav-link"

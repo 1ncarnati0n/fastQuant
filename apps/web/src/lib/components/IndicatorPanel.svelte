@@ -2,6 +2,7 @@
   import type { AnalysisParams } from "$lib/api/types";
   import { INDICATOR_SPECS, type FieldSpec, type IndicatorSpec } from "$lib/chart/indicatorSpecs";
   import Toggle from "$lib/components/ui/Toggle.svelte";
+  import IndicatorStyleEditor from "$lib/components/IndicatorStyleEditor.svelte";
   import { INDICATOR_GUIDES } from "$lib/features/indicators/panelGuides";
   import {
     addNumberArrayItem,
@@ -29,11 +30,9 @@
   let {
     params,
     onParamsChange,
-    onClose = () => {},
   }: {
     params: AnalysisParams;
     onParamsChange: (next: AnalysisParams) => void;
-    onClose?: () => void;
   } = $props();
 
   // ── 상태 ─────────────────────────────────────────────────
@@ -385,17 +384,6 @@
         <span class="detail-title">{selectedSpec.label}</span>
         <span class="detail-group">{selectedSpec.description}</span>
       </div>
-      <button
-        type="button"
-        class="close-detail-btn"
-        onclick={onClose}
-        aria-label="보조지표 패널 닫기"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6 6 18" />
-          <path d="m6 6 12 12" />
-        </svg>
-      </button>
       <Toggle
         checked={isActive(selectedSpec)}
         disabled={selectedSpec.activation.kind === "always"}
@@ -521,24 +509,9 @@
 
     <div class="section-block section-block--style">
       <div class="fields-label">스타일</div>
-      <div class="style-grid">
-        <div class="style-cell">
-          <span class="style-key">색상</span>
-          <button type="button" class="style-pill" disabled>
-            <span class="style-dot"></span>
-            #FF9800
-          </button>
-        </div>
-        <div class="style-cell">
-          <span class="style-key">선 스타일</span>
-          <button type="button" class="style-pill" disabled>1px</button>
-        </div>
-        <div class="style-cell">
-          <span class="style-key">밴드 채우기</span>
-          <button type="button" class="style-pill" disabled>0.12</button>
-        </div>
+      <div class="style-editor-wrap">
+        <IndicatorStyleEditor spec={selectedSpec} {params} />
       </div>
-      <div class="style-help">현재 버전에서는 스타일 파라미터 저장/적용 UI만 제공됩니다.</div>
     </div>
 
     <div class="section-block">
@@ -590,6 +563,7 @@
   .indicator-shell {
     display: grid;
     grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     min-height: 0;
     height: 100%;
     background: var(--card);
@@ -1071,25 +1045,6 @@
     flex-shrink: 0;
   }
 
-  .close-detail-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--card);
-    color: var(--muted-fore);
-    cursor: pointer;
-    transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
-  }
-
-  .close-detail-btn:hover {
-    color: var(--foreground);
-    border-color: color-mix(in srgb, var(--foreground) 30%, var(--border));
-  }
-
   .title-block {
     display: flex;
     flex-direction: column;
@@ -1374,51 +1329,8 @@
     border-top: 1px solid var(--border);
   }
 
-  .style-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    padding: 0 14px;
-  }
-
-  .style-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .style-key {
-    font-size: var(--fs-xs);
-    color: var(--muted-fore);
-    font-weight: 600;
-  }
-
-  .style-pill {
-    height: 38px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--muted-bg);
-    color: var(--muted-fore);
-    font-size: var(--fs-sm);
-    font-weight: 600;
-    display: inline-flex;
-    gap: 8px;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .style-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 999px;
-    background: #f59e0b;
-    box-shadow: 0 0 0 2px color-mix(in srgb, #f59e0b 20%, transparent);
-  }
-
-  .style-help {
-    padding: 10px 14px 0;
-    font-size: var(--fs-xs);
-    color: var(--muted-fore);
+  .style-editor-wrap {
+    padding: 0 14px 12px;
   }
 
   .preset-save-row {
@@ -1433,6 +1345,8 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
   }
 
   .preset-item {

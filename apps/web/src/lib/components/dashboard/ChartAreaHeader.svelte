@@ -59,31 +59,47 @@
 </script>
 
 <div class="chart-area-head">
-  <div class="intervals" role="group" aria-label="차트 인터벌">
-    <DropdownMenu
-      items={minuteItems}
-      triggerAriaLabel="분봉 선택"
-      triggerTitle="분봉 선택"
-      contentClass="minute-menu"
-    >
-      {#snippet trigger({ isOpen })}
-        <span class="iv iv--dropdown" class:active={minuteLabel !== "분봉"} class:open={isOpen}>
-          {minuteLabel}
-          <svg class="caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9" /></svg>
-        </span>
-      {/snippet}
-    </DropdownMenu>
-    {#each PERIOD_INTERVALS as iv}
-      <button
-        type="button"
-        class="iv"
-        class:active={interval === iv.key}
-        onclick={() => onSelectInterval?.(iv.key)}
-      >{iv.label}</button>
-    {/each}
-  </div>
+  <div class="left-controls">
+    <div class="intervals" role="group" aria-label="차트 인터벌">
+      <DropdownMenu
+        items={minuteItems}
+        triggerAriaLabel="분봉 선택"
+        triggerTitle="분봉 선택"
+        contentClass="minute-menu"
+      >
+        {#snippet trigger({ isOpen })}
+          <span class="iv iv--dropdown" class:active={minuteLabel !== "분봉"} class:open={isOpen}>
+            {minuteLabel}
+            <svg class="caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+          </span>
+        {/snippet}
+      </DropdownMenu>
+      {#each PERIOD_INTERVALS as iv}
+        <button
+          type="button"
+          class="iv"
+          class:active={interval === iv.key}
+          onclick={() => onSelectInterval?.(iv.key)}
+        >{iv.label}</button>
+      {/each}
+    </div>
 
-  <div class="tools">
+    <button
+      type="button"
+      class="tool tool--label tool--indicator"
+      class:has-count={indicatorCount > 0}
+      onclick={onOpenIndicators}
+      title="보조지표"
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M4 19h16M7 16V9M12 16V5M17 16v-6" />
+      </svg>
+      <span>보조지표</span>
+      {#if indicatorCount > 0}
+        <span class="count-badge">{indicatorCount}</span>
+      {/if}
+    </button>
+
     <DropdownMenu items={chartTypeItems} triggerAriaLabel="차트 타입">
       {#snippet trigger({ isOpen })}
         <span class="tool" class:active={isOpen} title="차트 타입">
@@ -98,6 +114,23 @@
       {/snippet}
     </DropdownMenu>
 
+    <button
+      type="button"
+      class="tool"
+      onclick={onRefresh}
+      disabled={loading}
+      title="새로고침"
+    >
+      <svg class:spinning={loading} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+        <path d="M21 3v5h-5" />
+        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+        <path d="M8 16H3v5" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="tools">
     <DropdownMenu items={drawingItems} triggerAriaLabel="그리기 도구">
       {#snippet trigger({ isOpen })}
         <span class="tool tool--label" class:active={isDrawing || isOpen} title="그리기">
@@ -126,46 +159,13 @@
         <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
       </svg>
     </button>
-
-    <button
-      type="button"
-      class="tool"
-      onclick={onRefresh}
-      disabled={loading}
-      title="새로고침"
-    >
-      <svg class:spinning={loading} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-        <path d="M21 3v5h-5" />
-        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-        <path d="M8 16H3v5" />
-      </svg>
-    </button>
-
-    <div class="sep tool-sep--right" aria-hidden="true"></div>
-
-    <button
-      type="button"
-      class="tool tool--label tool--indicator"
-      class:has-count={indicatorCount > 0}
-      onclick={onOpenIndicators}
-      title="보조지표"
-    >
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M4 19h16M7 16V9M12 16V5M17 16v-6" />
-      </svg>
-      <span>지표</span>
-      {#if indicatorCount > 0}
-        <span class="count-badge">{indicatorCount}</span>
-      {/if}
-    </button>
   </div>
 </div>
 
 <style>
   .chart-area-head {
     display: grid;
-    grid-template-columns: auto minmax(240px, 1fr);
+    grid-template-columns: minmax(0, auto) minmax(180px, 1fr);
     align-items: center;
     min-height: 50px;
     padding: 0 14px;
@@ -173,6 +173,13 @@
     border-bottom: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
     background: color-mix(in srgb, var(--card) 96%, var(--chart-bg));
     box-shadow: 0 4px 14px color-mix(in srgb, var(--foreground) 8%, transparent);
+  }
+
+  .left-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
   }
 
   .intervals {
@@ -257,7 +264,7 @@
     display: flex;
     align-items: center;
     gap: 2px;
-    justify-content: flex-start;
+    justify-content: flex-end;
     min-width: 0;
     overflow-x: auto;
     scrollbar-width: none;
@@ -292,7 +299,7 @@
   }
 
   .tool--label { min-width: 74px; }
-  .tool--indicator { margin-left: auto; }
+  .tool--indicator { flex-shrink: 0; }
   .tool.has-count { color: var(--primary); }
 
   .count-badge {
@@ -311,22 +318,20 @@
 
   .caret { color: var(--muted-fore); }
 
-  .sep {
-    width: 1px;
-    height: 16px;
-    background: var(--border);
-    margin: 0 4px;
-    flex-shrink: 0;
-  }
-  .tool-sep--right { margin-left: auto; }
-
   .spinning { animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   @media (max-width: 1180px) {
     .chart-area-head {
-      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-columns: 1fr auto;
     }
+
+    .left-controls {
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .left-controls::-webkit-scrollbar { display: none; }
 
     .intervals {
       justify-content: flex-start;
@@ -337,16 +342,11 @@
     .intervals::-webkit-scrollbar { display: none; }
 
     .tools {
-      grid-column: 1 / -1;
-      padding-bottom: 8px;
-    }
-    .tool--indicator,
-    .tool-sep--right {
-      margin-left: 0;
+      justify-content: flex-end;
     }
 
-    .tool--label span { display: none; }
-    .tool--label { min-width: 30px; }
+    .tools .tool--label span { display: none; }
+    .tools .tool--label { min-width: 30px; }
   }
 
   @media (max-width: 760px) {
@@ -355,6 +355,11 @@
       align-items: start;
       gap: 8px;
       padding: 8px 10px;
+    }
+
+    .tools {
+      width: 100%;
+      justify-content: flex-end;
     }
   }
 </style>
