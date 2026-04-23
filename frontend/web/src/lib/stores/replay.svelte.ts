@@ -1,9 +1,7 @@
 import { browser } from "$app/environment";
+import { SPEED_PRESETS, type ReplaySpeed } from "$lib/features/replay/controlConfig";
 
 const STORAGE_KEY = "fastquant-replay-v1";
-
-export const SPEED_PRESETS = [0.5, 1, 2, 5] as const;
-export type ReplaySpeed = (typeof SPEED_PRESETS)[number];
 
 const DEFAULT_LOOKBACK = 120;
 

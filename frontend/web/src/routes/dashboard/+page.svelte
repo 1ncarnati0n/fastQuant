@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { browser } from "$app/environment";
   import AnalysisSummary from "$lib/components/AnalysisSummary.svelte";
   import MarketChart from "$lib/components/MarketChart.svelte";
   import AppBar from "$lib/components/dashboard/AppBar.svelte";
@@ -11,314 +10,93 @@
   import ShortcutsModal from "$lib/components/command/ShortcutsModal.svelte";
   import SettingsPanel from "$lib/components/dashboard/SettingsPanel.svelte";
   import IndicatorDialog from "$lib/components/IndicatorDialog.svelte";
-  import {
-    createCompareRequestKey,
-    haveSameCompareSymbols,
-    pruneCompareData,
-  } from "$lib/features/dashboard/compareData";
-  import { buildDashboardCommands } from "$lib/features/dashboard/commands";
-  import { calculateDockWidth } from "$lib/features/dashboard/dockResize";
-  import { installShortcuts } from "$lib/features/dashboard/useShortcuts.svelte";
-  import { chart } from "$lib/stores/chart.svelte";
-  import { snapshots, type WorkspaceSnapshot } from "$lib/stores/snapshots.svelte";
-  import { replay } from "$lib/stores/replay.svelte";
-  import { sliceAnalysisAt } from "$lib/utils/replaySlice";
-  import { countActiveIndicators } from "$lib/chart/indicatorSpecs";
   import ReplayControls from "$lib/components/chart/ReplayControls.svelte";
-  import { fetchAnalysis, fetchFundamentals } from "$lib/api/client";
-  import type { AnalysisParams, AnalysisResponse, Candle, FundamentalsResponse, MarketType } from "$lib/api/types";
-  import { workspace } from "$lib/stores/workspace.svelte";
+  import { createDashboardPageController } from "$lib/features/dashboard/useDashboardPage.svelte";
 
-  let analysis = $state<AnalysisResponse | null>(null);
-  let fundamentals = $state<FundamentalsResponse | null>(null);
-  let loading = $state(false);
-  let error = $state<string | null>(null);
-
-  // Replay-aware analysis — when replay is enabled, slice to currentIndex
-  const effectiveAnalysis = $derived(
-    analysis && replay.enabled ? sliceAnalysisAt(analysis, replay.currentIndex) : analysis,
-  );
-
-  // ── Compare symbols (max 2) ─── cached candle data per requested symbol
-  let compareData = $state<Record<string, Candle[]>>({});
-  let compareInFlight = new Set<string>();
-
-  async function fetchCompareCandles(symbol: string, market: MarketType, interval: string) {
-    const key = createCompareRequestKey(symbol, market, interval);
-    if (compareInFlight.has(key)) return;
-    compareInFlight.add(key);
-    try {
-      const resp = await fetchAnalysis({
-        ...workspace.params,
-        symbol,
-        market,
-        interval,
-      });
-      compareData = { ...compareData, [symbol]: resp.candles };
-    } catch {
-      // keep previous data; do not surface error for a compare line
-    } finally {
-      compareInFlight.delete(key);
-    }
-  }
-
-  $effect(() => {
-    // Re-fetch whenever compareSymbols / market / interval changes
-    const symbols = chart.compareSymbols;
-    const market = workspace.params.market;
-    const interval = workspace.params.interval;
-
-    for (const s of symbols) {
-      if (!compareData[s]) void fetchCompareCandles(s, market, interval);
-    }
-    // Drop data for symbols no longer requested
-    const next = pruneCompareData(compareData, symbols);
-    if (!haveSameCompareSymbols(compareData, next)) compareData = next;
-  });
-
-  // When market/interval changes, invalidate all cached compare candles
-  $effect(() => {
-    void workspace.params.market;
-    void workspace.params.interval;
-    compareData = {};
-  });
-
-  $effect(() => {
-    const symbol = workspace.params.symbol;
-    const market = workspace.params.market;
-    if (!symbol || !market || market === "crypto") {
-      fundamentals = null;
-      return;
-    }
-    void loadFundamentals(symbol, market);
-  });
-
-  const indicatorCount = $derived(
-    countActiveIndicators(workspace.params as unknown as Record<string, unknown>),
-  );
-
-  // Command palette + shortcuts help + settings + indicators
-  let paletteOpen = $state(false);
-  let shortcutsOpen = $state(false);
-  let settingsOpen = $state(false);
-  let indicatorOpen = $state(false);
-  let settingsInitialTab = $state("indicators");
   let shellEl = $state<HTMLDivElement | null>(null);
-  let dockResizing = $state(false);
-  let mainTab = $state<"chart" | "fundamentals">("chart");
+  const dashboard = createDashboardPageController();
 
-  function openSettings(tabKey: string = "indicators") {
-    settingsInitialTab = tabKey;
-    settingsOpen = true;
-  }
-
-  function applySnapshot(snap: WorkspaceSnapshot) {
-    if (workspace.theme !== snap.theme) workspace.toggleTheme();
-    chart.setChartType(snap.chartType);
-    workspace.setDockTab(snap.dockTab);
-    workspace.setParams(snap.params);
-    void loadAnalysis(snap.params);
-  }
-
-  function captureSnapshot(name?: string) {
-    return snapshots.save({
-      name,
-      params: workspace.params,
-      theme: workspace.theme,
-      chartType: chart.chartType,
-      dockTab: workspace.dockTab,
-      watchlist: workspace.watchlist,
-    });
-  }
-
-  const commands = $derived.by(() => {
-    return buildDashboardCommands({
-      analysis,
-      replayEnabled: replay.enabled,
-      theme: workspace.theme,
-      watchlist: workspace.watchlist,
-      recentSymbols: workspace.recentSymbols,
-      snapshots: snapshots.items,
-      openDockTab,
-      openSettings,
-      selectSymbol,
-      setInterval,
-      toggleTheme: () => workspace.toggleTheme(),
-      toggleFullscreen: () => chart.toggleFullscreen(),
-      openShortcuts: () => (shortcutsOpen = true),
-      loadAnalysis: () => loadAnalysis(),
-      toggleReplay: () => {
-        if (!analysis) return;
-        replay.toggleEnabled(analysis.candles.length);
-      },
-      captureSnapshot: () => captureSnapshot(),
-      applySnapshot,
-    });
-  });
-
-  onMount(() => {
-    void loadAnalysis();
-    return installShortcuts({
-      onCommandPalette: () => (paletteOpen = true),
-      onShortcutsHelp: () => (shortcutsOpen = true),
-      onOpenWatchlist: () => openDockTab("watchlist"),
-      onOpenSettings: () => openSettings("indicators"),
-      onOpenSymbolSearch: () => openDockTab("watchlist"),
-      onToggleFullscreen: () => chart.toggleFullscreen(),
-      onToggleReplay: () => {
-        if (!analysis) return;
-        replay.toggleEnabled(analysis.candles.length);
-      },
-      onReplayPlayPause: () => {
-        if (replay.enabled) replay.togglePlaying();
-      },
-      onReplayStep: (delta) => {
-        if (!analysis || !replay.enabled) return;
-        replay.step(delta, analysis.candles.length);
-      },
-    });
-  });
-
-  async function loadAnalysis(target: AnalysisParams = workspace.params) {
-    loading = true;
-    error = null;
-    try {
-      analysis = await fetchAnalysis(target);
-    } catch (caught) {
-      error = caught instanceof Error ? caught.message : "분석 데이터를 불러오지 못했습니다";
-    } finally {
-      loading = false;
-    }
-  }
-
-  async function loadFundamentals(symbol: string, market: MarketType) {
-    try {
-      fundamentals = await fetchFundamentals({ symbol, market });
-    } catch {
-      fundamentals = null;
-    }
-  }
-
-  function selectSymbol(symbol: string, market: MarketType, label?: string) {
-    const next = { ...workspace.params, symbol, market };
-    workspace.selectSymbol(symbol, market, label);
-    void loadAnalysis(next);
-  }
-
-  function setInterval(iv: string) {
-    const next = { ...workspace.params, interval: iv };
-    workspace.patchParams({ interval: iv });
-    void loadAnalysis(next);
-  }
-
-  function updateParams(next: AnalysisParams) {
-    workspace.setParams(next);
-    void loadAnalysis(next);
-  }
-
-  function openDockTab(tab: typeof workspace.dockTab) {
-    workspace.setDockTab(tab);
-  }
-
-  function toggleDockTab(tab: typeof workspace.dockTab) {
-    if (workspace.dockOpen && workspace.dockTab === tab) {
-      workspace.setDockOpen(false);
-      return;
-    }
-    workspace.setDockTab(tab);
-  }
-
-  function startDockResize(event: MouseEvent) {
-    if (!browser) return;
-    event.preventDefault();
-    const startX = event.clientX;
-    const startWidth = workspace.dockWidth;
-    const shellWidth = shellEl?.getBoundingClientRect().width ?? window.innerWidth;
-    dockResizing = true;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const delta = moveEvent.clientX - startX;
-      workspace.setDockWidth(calculateDockWidth({ startWidth, deltaX: delta, shellWidth }));
-    };
-    const cleanup = () => {
-      dockResizing = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", cleanup);
-    };
-
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", cleanup);
-  }
+  onMount(() => dashboard.initialize());
 </script>
 
-<main class:app={!chart.isFullscreen} class:fullscreen-app={chart.isFullscreen}>
-  {#if !chart.isFullscreen}
+<main class:app={!dashboard.isFullscreen} class:fullscreen-app={dashboard.isFullscreen}>
+  {#if !dashboard.isFullscreen}
     <div class="ambient ambient--top" aria-hidden="true"></div>
     <div class="ambient ambient--grid" aria-hidden="true"></div>
   {/if}
   <div
     class="workspace-frame"
-    class:has-dock={workspace.dockOpen && !chart.isFullscreen}
-    style:--dock-width={`${workspace.dockWidth}px`}
+    class:has-dock={dashboard.dockOpen && !dashboard.isFullscreen}
+    style:--dock-width={`${dashboard.dockWidth}px`}
     bind:this={shellEl}
   >
     <!-- ── Main column (AppBar + chart body) ── -->
     <div class="main-column">
       <AppBar
-        analysis={effectiveAnalysis}
-        fundamentals={fundamentals}
-        symbol={workspace.params.symbol}
-        market={workspace.params.market}
-        {loading}
-        activeMainTab={mainTab}
-        onSelectMainTab={(tab) => (mainTab = tab)}
-        onOpenSettings={() => openSettings("indicators")}
-        onOpenPalette={() => (paletteOpen = true)}
+        analysis={dashboard.effectiveAnalysis}
+        fundamentals={dashboard.fundamentals}
+        symbol={dashboard.params.symbol}
+        market={dashboard.params.market}
+        loading={dashboard.loading}
+        activeMainTab={dashboard.mainTab}
+        theme={dashboard.theme}
+        onSelectMainTab={(tab) => (dashboard.mainTab = tab)}
+        onToggleTheme={dashboard.settingsActions.toggleTheme}
+        onOpenSettings={() => dashboard.openSettings("indicators")}
+        onOpenPalette={() => (dashboard.paletteOpen = true)}
       />
 
       <div
-        class:body={!chart.isFullscreen}
-        class:fullscreen-body={chart.isFullscreen}
+        class:body={!dashboard.isFullscreen}
+        class:fullscreen-body={dashboard.isFullscreen}
       >
         <!-- ── Chart area ── -->
         <div class="chart-area">
-          {#if mainTab === "chart"}
+          {#if dashboard.mainTab === "chart"}
             <ChartAreaHeader
-              interval={workspace.params.interval}
-              {loading}
-              {indicatorCount}
-              onSelectInterval={setInterval}
-              onRefresh={() => loadAnalysis()}
-              onOpenIndicators={() => (indicatorOpen = true)}
+              interval={dashboard.params.interval}
+              loading={dashboard.loading}
+              indicatorCount={dashboard.indicatorCount}
+              chartType={dashboard.settingsState.chartType}
+              chartTypeLabels={dashboard.chartTypeLabels}
+              drawingTool={dashboard.settingsState.drawingActiveTool}
+              drawingCount={dashboard.settingsState.drawingCount}
+              onSelectInterval={dashboard.setInterval}
+              onSelectChartType={dashboard.settingsActions.setChartType}
+              onSelectDrawingTool={dashboard.settingsActions.setDrawingTool}
+              onDeleteOrUndoDrawing={dashboard.deleteOrUndoDrawing}
+              onRefresh={() => void dashboard.loadAnalysis()}
+              onOpenIndicators={() => (dashboard.indicatorOpen = true)}
             />
             <div class="chart-stack">
               <AnalysisSummary
-                analysis={effectiveAnalysis}
-                {loading}
-                {error}
-                params={workspace.params}
-                onParamsChange={updateParams}
+                analysis={dashboard.effectiveAnalysis}
+                loading={dashboard.loading}
+                error={dashboard.error}
+                params={dashboard.params}
+                onParamsChange={dashboard.updateParams}
               />
               <MarketChart
-                analysis={effectiveAnalysis}
-                symbol={workspace.params.symbol}
-                interval={workspace.params.interval}
-                {compareData}
+                analysis={dashboard.effectiveAnalysis}
+                symbol={dashboard.params.symbol}
+                interval={dashboard.params.interval}
+                compareData={dashboard.compareData}
               />
             </div>
-            {#if replay.enabled && analysis}
-              <ReplayControls totalBars={analysis.candles.length} />
+            {#if dashboard.settingsState.replayEnabled && dashboard.analysis}
+              <ReplayControls
+                totalBars={dashboard.analysis.candles.length}
+                replayState={dashboard.replayState}
+                replayActions={dashboard.replayActions}
+              />
             {/if}
           {:else}
             <FundamentalsMainView
-              symbol={workspace.params.symbol}
-              market={workspace.params.market}
-              fundamentals={fundamentals}
-              {loading}
+              symbol={dashboard.params.symbol}
+              market={dashboard.params.market}
+              fundamentals={dashboard.fundamentals}
+              loading={dashboard.fundamentalsLoading}
+              error={dashboard.fundamentalsError}
             />
           {/if}
         </div>
@@ -326,40 +104,45 @@
     </div>
 
     <!-- ── Right sidebar (between chart and quick-rail) ── -->
-    {#if workspace.dockOpen && !chart.isFullscreen}
+    {#if dashboard.dockOpen && !dashboard.isFullscreen}
       <button
         type="button"
         class="dock-resizer"
-        class:active={dockResizing}
-        onmousedown={startDockResize}
-        ondblclick={() => workspace.resetDockWidth()}
+        class:active={dashboard.dockResizing}
+        onmousedown={(event) => dashboard.startDockResize(event, shellEl?.getBoundingClientRect().width ?? window.innerWidth)}
+        ondblclick={dashboard.settingsActions.resetDockWidth}
         aria-label="우측 패널 너비 조절"
         title="우측 패널 너비 조절, 더블클릭으로 초기화"
       ></button>
       <aside class="sidebar">
         <RightDock
-          activeTab={workspace.dockTab}
-          params={workspace.params}
-          selectedSymbol={workspace.params.symbol}
-          selectedMarket={workspace.params.market}
-          interval={workspace.params.interval}
-          onTabChange={(tab) => workspace.setDockTab(tab)}
-          onClose={() => workspace.setDockOpen(false)}
-          onSelectSymbol={selectSymbol}
-          onParamsChange={updateParams}
-          onOpenSettings={() => openSettings("appearance")}
+          activeTab={dashboard.dockTab}
+          params={dashboard.params}
+          selectedSymbol={dashboard.params.symbol}
+          selectedMarket={dashboard.params.market}
+          interval={dashboard.params.interval}
+          fundamentals={dashboard.fundamentals}
+          fundamentalsLoading={dashboard.fundamentalsLoading}
+          fundamentalsError={dashboard.fundamentalsError}
+          settingsState={dashboard.settingsState}
+          settingsActions={dashboard.settingsActions}
+          onTabChange={dashboard.openDockTab}
+          onClose={() => dashboard.toggleDockTab(dashboard.dockTab)}
+          onSelectSymbol={dashboard.selectSymbol}
+          onParamsChange={dashboard.updateParams}
+          onOpenSettings={() => dashboard.openSettings("appearance")}
         />
       </aside>
     {/if}
 
     <!-- ── Quick rail (rightmost, always-on nav) ── -->
-    {#if !chart.isFullscreen}
+    {#if !dashboard.isFullscreen}
       <aside class="quick-rail top-rail" aria-label="빠른 메뉴">
         <button
           type="button"
           class="rail-btn"
-          class:active={workspace.dockOpen && workspace.dockTab === "settings"}
-          onclick={() => toggleDockTab("settings")}
+          class:active={dashboard.dockOpen && dashboard.dockTab === "settings"}
+          onclick={() => dashboard.toggleDockTab("settings")}
           title="내 투자"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 18h16v2H4zM5 10h3v6H5zm5-4h3v10h-3zm5 6h3v4h-3z"/></svg>
@@ -368,8 +151,8 @@
         <button
           type="button"
           class="rail-btn"
-          class:active={workspace.dockOpen && workspace.dockTab === "watchlist"}
-          onclick={() => toggleDockTab("watchlist")}
+          class:active={dashboard.dockOpen && dashboard.dockTab === "watchlist"}
+          onclick={() => dashboard.toggleDockTab("watchlist")}
           title="관심"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-9.33-8.2C.36 8.96 2.4 4.5 6.7 4.5c2.1 0 3.47 1.02 4.3 2.07.83-1.05 2.2-2.07 4.3-2.07 4.3 0 6.34 4.46 4.03 8.3C19 16.65 12 21 12 21Z"/></svg>
@@ -378,8 +161,8 @@
         <button
           type="button"
           class="rail-btn"
-          class:active={workspace.dockOpen && workspace.dockTab === "fundamentals"}
-          onclick={() => toggleDockTab("fundamentals")}
+          class:active={dashboard.dockOpen && dashboard.dockTab === "fundamentals"}
+          onclick={() => dashboard.toggleDockTab("fundamentals")}
           title="최근 본"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-2.34-5.66L15 9h7V2l-2.92 2.92A9.97 9.97 0 0 0 12 2Zm1 5h-2v6l5 3 1-1.73-4-2.27Z"/></svg>
@@ -389,8 +172,8 @@
         <button
           type="button"
           class="rail-btn"
-          class:active={workspace.dockOpen && workspace.dockTab === "strategy"}
-          onclick={() => toggleDockTab("strategy")}
+          class:active={dashboard.dockOpen && dashboard.dockTab === "strategy"}
+          onclick={() => dashboard.toggleDockTab("strategy")}
           title="실시간"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
@@ -401,18 +184,20 @@
   </div>
 </main>
 
-<CommandPalette bind:open={paletteOpen} {commands} />
-<ShortcutsModal bind:open={shortcutsOpen} />
+<CommandPalette bind:open={dashboard.paletteOpen} commands={dashboard.commands} />
+<ShortcutsModal bind:open={dashboard.shortcutsOpen} />
 <SettingsPanel
-  bind:open={settingsOpen}
-  initialTab={settingsInitialTab}
-  onParamsChange={updateParams}
-  onApplySnapshot={applySnapshot}
+  bind:open={dashboard.settingsOpen}
+  initialTab={dashboard.settingsInitialTab}
+  params={dashboard.params}
+  settingsState={dashboard.settingsState}
+  settingsActions={dashboard.settingsActions}
+  onParamsChange={dashboard.updateParams}
 />
 <IndicatorDialog
-  bind:open={indicatorOpen}
-  params={workspace.params}
-  onParamsChange={updateParams}
+  bind:open={dashboard.indicatorOpen}
+  params={dashboard.params}
+  onParamsChange={dashboard.updateParams}
 />
 
 <style>

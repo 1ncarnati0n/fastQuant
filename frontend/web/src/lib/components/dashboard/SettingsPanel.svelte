@@ -2,26 +2,30 @@
   import Dialog from "$lib/ui/Dialog.svelte";
   import Tabs from "$lib/ui/Tabs.svelte";
   import IndicatorPanel from "$lib/components/IndicatorPanel.svelte";
-  import { workspace } from "$lib/stores/workspace.svelte";
-  import { chart, CHART_TYPE_LABELS, COMPARE_COLORS } from "$lib/stores/chart.svelte";
-  import { drawing } from "$lib/stores/drawing.svelte";
-  import { replay, SPEED_PRESETS, type ReplaySpeed } from "$lib/stores/replay.svelte";
+  import { SPEED_PRESETS, type ReplaySpeed } from "$lib/features/replay/controlConfig";
   import { SHORTCUT_HELP_GROUPS } from "$lib/utils/shortcuts";
-  import { snapshots, type WorkspaceSnapshot } from "$lib/stores/snapshots.svelte";
   import type { AnalysisParams } from "$lib/api/types";
   import { SETTINGS_TAB_ITEMS, formatSnapshotDate } from "$lib/features/settings/panelConfig";
   import { CHART_TYPE_ORDER, PRICE_SCALE_MODES } from "$lib/features/chart/controlConfig";
+  import type {
+    DashboardSettingsActions,
+    DashboardSettingsState,
+  } from "$lib/features/dashboard/useDashboardPage.svelte";
 
   let {
     open = $bindable(false),
     initialTab = "indicators",
+    params,
+    settingsState,
+    settingsActions,
     onParamsChange,
-    onApplySnapshot,
   }: {
     open?: boolean;
     initialTab?: string;
+    params: AnalysisParams;
+    settingsState: DashboardSettingsState;
+    settingsActions: DashboardSettingsActions;
     onParamsChange: (next: AnalysisParams) => void;
-    onApplySnapshot: (snap: WorkspaceSnapshot) => void;
   } = $props();
 
   let tab = $state("indicators");
@@ -38,19 +42,12 @@
   function addCompareFromInput() {
     const s = compareInput.trim();
     if (!s) return;
-    if (chart.addCompareSymbol(s)) {
+    if (settingsActions.addCompareSymbol(s)) {
       compareInput = "";
     }
   }
   function takeSnapshot() {
-    snapshots.save({
-      name: snapshotName,
-      params: workspace.params,
-      theme: workspace.theme,
-      chartType: chart.chartType,
-      dockTab: workspace.dockTab,
-      watchlist: workspace.watchlist,
-    });
+    settingsActions.takeSnapshot(snapshotName);
     snapshotName = "";
   }
 
@@ -58,8 +55,8 @@
     return formatSnapshotDate(ts);
   }
 
-  function applyAndClose(snap: WorkspaceSnapshot) {
-    onApplySnapshot(snap);
+  function applyAndClose(snap: DashboardSettingsState["snapshots"][number]) {
+    settingsActions.applySnapshot(snap);
     open = false;
   }
 </script>
@@ -75,7 +72,7 @@
               <p class="panel__desc">오른쪽 도크와 동일한 토글 세트입니다.</p>
             </div>
             <div class="panel__body panel__body--indicators">
-              <IndicatorPanel params={workspace.params} onParamsChange={onParamsChange} />
+              <IndicatorPanel {params} onParamsChange={onParamsChange} />
             </div>
 
           {:else if active === "layout"}
@@ -93,9 +90,9 @@
                   <button
                     type="button"
                     class="btn"
-                    onclick={() => localStorage.removeItem("fastquant-dashboard-dock-width")}
+                    onclick={settingsActions.resetDockWidth}
                   >
-                    기본값(360px)으로 리셋
+                    기본값으로 리셋
                   </button>
                 </div>
               </section>
@@ -122,11 +119,11 @@
               <section class="row">
                 <div class="row__label">
                   <strong>테마</strong>
-                  <span class="row__hint">현재: {workspace.theme === "dark" ? "다크" : "라이트"}</span>
+                  <span class="row__hint">현재: {settingsState.theme === "dark" ? "다크" : "라이트"}</span>
                 </div>
                 <div class="row__control">
-                  <button type="button" class="btn" onclick={() => workspace.toggleTheme()}>
-                    {workspace.theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
+                  <button type="button" class="btn" onclick={settingsActions.toggleTheme}>
+                    {settingsState.theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
                   </button>
                 </div>
               </section>
@@ -134,7 +131,7 @@
               <section class="row">
                 <div class="row__label">
                   <strong>차트 타입</strong>
-                  <span class="row__hint">현재: {CHART_TYPE_LABELS[chart.chartType]}</span>
+                  <span class="row__hint">현재: {settingsState.chartTypeLabels[settingsState.chartType]}</span>
                 </div>
                 <div class="row__control">
                   <div class="segmented">
@@ -142,10 +139,10 @@
                       <button
                         type="button"
                         class="seg-btn"
-                        class:is-active={chart.chartType === key}
-                        onclick={() => chart.setChartType(key)}
+                        class:is-active={settingsState.chartType === key}
+                        onclick={() => settingsActions.setChartType(key)}
                       >
-                        {CHART_TYPE_LABELS[key]}
+                        {settingsState.chartTypeLabels[key]}
                       </button>
                     {/each}
                   </div>
@@ -155,7 +152,7 @@
               <section class="row">
                 <div class="row__label">
                   <strong>가격 스케일</strong>
-                  <span class="row__hint">현재: {chart.priceScaleMode === "log" ? "로그" : "기본"}</span>
+                  <span class="row__hint">현재: {settingsState.priceScaleMode === "log" ? "로그" : "기본"}</span>
                 </div>
                 <div class="row__control">
                   <div class="segmented">
@@ -163,8 +160,8 @@
                       <button
                         type="button"
                         class="seg-btn"
-                        class:is-active={chart.priceScaleMode === mode.key}
-                        onclick={() => chart.setPriceScaleMode(mode.key)}
+                        class:is-active={settingsState.priceScaleMode === mode.key}
+                        onclick={() => settingsActions.setPriceScaleMode(mode.key)}
                       >
                         {mode.label}
                       </button>
@@ -179,8 +176,8 @@
                   <span class="row__hint">차트 하단의 날짜/시간 눈금</span>
                 </div>
                 <div class="row__control">
-                  <button type="button" class="btn" onclick={() => chart.toggleTimeAxis()}>
-                    {chart.timeAxisVisible ? "숨기기" : "표시"}
+                  <button type="button" class="btn" onclick={settingsActions.toggleTimeAxis}>
+                    {settingsState.timeAxisVisible ? "숨기기" : "표시"}
                   </button>
                 </div>
               </section>
@@ -189,23 +186,23 @@
                 <div class="row__label">
                   <strong>비교 심볼</strong>
                   <span class="row__hint">
-                    최대 {chart.maxCompare}개 · 동일 인터벌/마켓으로 정규화된 라인이 차트에 오버레이
+                    최대 {settingsState.maxCompare}개 · 동일 인터벌/마켓으로 정규화된 라인이 차트에 오버레이
                   </span>
                 </div>
                 <div class="row__control compare-controls">
                   <div class="compare-chips">
-                    {#each chart.compareSymbols as sym, i (sym)}
+                    {#each settingsState.compareSymbols as sym, i (sym)}
                       <span
                         class="compare-chip"
-                        style:border-color="color-mix(in srgb, {COMPARE_COLORS[i] ?? '#9ca3af'} 55%, var(--line))"
-                        style:color={COMPARE_COLORS[i] ?? "var(--text)"}
+                        style:border-color="color-mix(in srgb, {settingsState.compareColors[i] ?? '#9ca3af'} 55%, var(--line))"
+                        style:color={settingsState.compareColors[i] ?? "var(--text)"}
                       >
-                        <span class="compare-chip__dot" style:background={COMPARE_COLORS[i] ?? "#9ca3af"}></span>
+                        <span class="compare-chip__dot" style:background={settingsState.compareColors[i] ?? "#9ca3af"}></span>
                         {sym}
                         <button
                           type="button"
                           class="compare-chip__x"
-                          onclick={() => chart.removeCompareSymbol(sym)}
+                          onclick={() => settingsActions.removeCompareSymbol(sym)}
                           aria-label="{sym} 제거"
                           title="제거"
                         >
@@ -226,12 +223,12 @@
                       class="compare-input"
                       placeholder="심볼 추가 (예: SPY)"
                       maxlength="24"
-                      disabled={chart.compareSymbols.length >= chart.maxCompare}
+                      disabled={settingsState.compareSymbols.length >= settingsState.maxCompare}
                     />
                     <button
                       type="submit"
                       class="btn"
-                      disabled={chart.compareSymbols.length >= chart.maxCompare || compareInput.trim().length === 0}
+                      disabled={settingsState.compareSymbols.length >= settingsState.maxCompare || compareInput.trim().length === 0}
                     >
                       추가
                     </button>
@@ -245,7 +242,7 @@
                   <span class="row__hint">F 키로도 전환</span>
                 </div>
                 <div class="row__control">
-                  <button type="button" class="btn" onclick={() => chart.toggleFullscreen()}>
+                  <button type="button" class="btn" onclick={settingsActions.toggleFullscreen}>
                     전체화면 전환
                   </button>
                 </div>
@@ -261,10 +258,10 @@
               <section class="row">
                 <div class="row__label">
                   <strong>활성 도구</strong>
-                  <span class="row__hint">현재: {drawing.activeTool === "none" ? "선택" : drawing.activeTool}</span>
+                  <span class="row__hint">현재: {settingsState.drawingActiveTool === "none" ? "선택" : settingsState.drawingActiveTool}</span>
                 </div>
                 <div class="row__control">
-                  <button type="button" class="btn" onclick={() => drawing.setTool("none")}>
+                  <button type="button" class="btn" onclick={() => settingsActions.setDrawingTool("none")}>
                     도구 해제
                   </button>
                 </div>
@@ -279,16 +276,16 @@
                   <button
                     type="button"
                     class="btn"
-                    disabled={!drawing.canUndo}
-                    onclick={() => drawing.undo()}
+                    disabled={!settingsState.drawingCanUndo}
+                    onclick={settingsActions.undoDrawing}
                   >
                     Undo
                   </button>
                   <button
                     type="button"
                     class="btn"
-                    disabled={!drawing.canRedo}
-                    onclick={() => drawing.redo()}
+                    disabled={!settingsState.drawingCanRedo}
+                    onclick={settingsActions.redoDrawing}
                   >
                     Redo
                   </button>
@@ -298,14 +295,14 @@
               <section class="row">
                 <div class="row__label">
                   <strong>도형 수</strong>
-                  <span class="row__hint">{drawing.drawings.length}개 저장됨</span>
+                  <span class="row__hint">{settingsState.drawingCount}개 저장됨</span>
                 </div>
                 <div class="row__control">
                   <button
                     type="button"
                     class="btn"
-                    disabled={drawing.drawings.length === 0}
-                    onclick={() => drawing.clear()}
+                    disabled={settingsState.drawingCount === 0}
+                    onclick={settingsActions.clearDrawings}
                   >
                     모두 삭제
                   </button>
@@ -337,8 +334,8 @@
                       <button
                         type="button"
                         class="seg-btn"
-                        class:is-active={replay.speed === sp}
-                        onclick={() => replay.setSpeed(sp as ReplaySpeed)}
+                        class:is-active={settingsState.replaySpeed === sp}
+                        onclick={() => settingsActions.setReplaySpeed(sp as ReplaySpeed)}
                       >
                         {sp}x
                       </button>
@@ -358,8 +355,8 @@
                     min="20"
                     max="2000"
                     step="10"
-                    value={replay.lookback}
-                    oninput={(e) => replay.setLookback(Number((e.target as HTMLInputElement).value))}
+                    value={settingsState.replayLookback}
+                    oninput={(e) => settingsActions.setReplayLookback(Number((e.target as HTMLInputElement).value))}
                     class="num"
                   />
                 </div>
@@ -375,7 +372,7 @@
               <section class="row">
                 <div class="row__label">
                   <strong>현재 상태</strong>
-                  <span class="row__hint">{replay.enabled ? "리플레이 중" : "비활성"} · 인덱스 {replay.currentIndex}</span>
+                  <span class="row__hint">{settingsState.replayEnabled ? "리플레이 중" : "비활성"} · 인덱스 {settingsState.replayCurrentIndex}</span>
                 </div>
               </section>
             </div>
@@ -444,11 +441,11 @@
                 <button type="submit" class="btn btn--primary">현재 상태 저장</button>
               </form>
 
-              {#if snapshots.items.length === 0}
+              {#if settingsState.snapshots.length === 0}
                 <div class="snapshots__empty">저장된 스냅샷이 없습니다.</div>
               {:else}
                 <ul class="snapshots__list" role="list">
-                  {#each snapshots.items as snap (snap.id)}
+                  {#each settingsState.snapshots as snap (snap.id)}
                     <li class="snapshots__row">
                       <div class="snapshots__row-main">
                         <strong>{snap.name}</strong>
@@ -460,7 +457,7 @@
                         <button type="button" class="btn btn--ghost" onclick={() => applyAndClose(snap)}>
                           불러오기
                         </button>
-                        <button type="button" class="btn btn--ghost" onclick={() => snapshots.remove(snap.id)} aria-label="삭제" title="삭제">
+                        <button type="button" class="btn btn--ghost" onclick={() => settingsActions.removeSnapshot(snap.id)} aria-label="삭제" title="삭제">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 6 6 18M6 6l12 12" />
                           </svg>

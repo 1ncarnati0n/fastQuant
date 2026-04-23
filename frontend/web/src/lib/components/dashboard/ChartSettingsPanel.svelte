@@ -1,11 +1,20 @@
 <script lang="ts">
-  import { workspace } from "$lib/stores/workspace.svelte";
-  import { chart, CHART_TYPE_LABELS, type ChartType } from "$lib/stores/chart.svelte";
   import Toggle from "$lib/components/ui/Toggle.svelte";
+  import { CHART_TYPE_ORDER } from "$lib/features/chart/controlConfig";
+  import type {
+    DashboardSettingsActions,
+    DashboardSettingsState,
+  } from "$lib/features/dashboard/useDashboardPage.svelte";
 
-  let { onOpenSettings }: { onOpenSettings?: () => void } = $props();
-
-  const CHART_TYPES: ChartType[] = ["candlestick", "heikinAshi", "line", "area", "bar"];
+  let {
+    settingsState,
+    settingsActions,
+    onOpenSettings,
+  }: {
+    settingsState: DashboardSettingsState;
+    settingsActions: DashboardSettingsActions;
+    onOpenSettings?: () => void;
+  } = $props();
 </script>
 
 <div class="panel">
@@ -16,30 +25,30 @@
   <div class="setting-row">
     <span class="setting-name">다크 모드</span>
     <Toggle
-      checked={workspace.theme === "dark"}
-      onchange={() => workspace.toggleTheme()}
+      checked={settingsState.theme === "dark"}
+      onchange={settingsActions.toggleTheme}
     />
   </div>
 
   <div class="setting-row">
     <span class="setting-name">시간축 표시</span>
     <Toggle
-      checked={chart.timeAxisVisible}
-      onchange={() => chart.toggleTimeAxis()}
+      checked={settingsState.timeAxisVisible}
+      onchange={settingsActions.toggleTimeAxis}
     />
   </div>
 
   <!-- 차트 타입 -->
   <div class="section-label" style:margin-top="8px">차트 타입</div>
   <div class="seg-group">
-    {#each CHART_TYPES as type}
+    {#each CHART_TYPE_ORDER as type}
       <button
         type="button"
         class="seg-btn"
-        class:active={chart.chartType === type}
-        onclick={() => chart.setChartType(type)}
+        class:active={settingsState.chartType === type}
+        onclick={() => settingsActions.setChartType(type)}
       >
-        {CHART_TYPE_LABELS[type]}
+        {settingsState.chartTypeLabels[type]}
       </button>
     {/each}
   </div>
@@ -50,14 +59,14 @@
     <button
       type="button"
       class="seg-btn"
-      class:active={chart.priceScaleMode === "normal"}
-      onclick={() => chart.setPriceScaleMode("normal")}
+      class:active={settingsState.priceScaleMode === "normal"}
+      onclick={() => settingsActions.setPriceScaleMode("normal")}
     >기본</button>
     <button
       type="button"
       class="seg-btn"
-      class:active={chart.priceScaleMode === "log"}
-      onclick={() => chart.setPriceScaleMode("log")}
+      class:active={settingsState.priceScaleMode === "log"}
+      onclick={() => settingsActions.setPriceScaleMode("log")}
     >로그</button>
   </div>
 
@@ -65,7 +74,7 @@
   <div class="section-label" style:margin-top="8px">화면</div>
   <div class="setting-row">
     <span class="setting-name">전체화면 전환</span>
-    <button type="button" class="action-btn" onclick={() => chart.toggleFullscreen()}>
+    <button type="button" class="action-btn" onclick={settingsActions.toggleFullscreen}>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
       </svg>

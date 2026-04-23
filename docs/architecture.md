@@ -123,6 +123,7 @@ apps/web/
 │  │  │  └─ coords.ts        # time↔x / price↔y 변환
 │  │  ├─ features/           # 기능 단위 ViewModel (stores + API 조립)
 │  │  │  ├─ dashboard/
+│  │  │  │  ├─ useDashboardPage.svelte.ts  # dashboard thin route controller
 │  │  │  │  ├─ useAnalysis.svelte.ts
 │  │  │  │  ├─ useWatchlist.svelte.ts
 │  │  │  │  └─ useShortcuts.svelte.ts
@@ -161,7 +162,7 @@ apps/web/
 │     ├─ +layout.ts           # SSR 비활성(ssr=false), prerender=false
 │     ├─ +page.svelte         # /dashboard로 redirect
 │     ├─ dashboard/
-│     │  ├─ +page.svelte
+│     │  ├─ +page.svelte      # thin route: controller 조립 + view wiring only
 │     │  └─ +page.ts
 │     └─ strategy/
 │        ├─ +page.svelte      # 탭 쉘
@@ -181,8 +182,8 @@ apps/web/
 
 | 레이어 | 책임 | 의존 허용 대상 |
 | --- | --- | --- |
-| `routes/` | URL → 페이지 조립, layout 제공 | `features`, `components`, `stores` |
-| `features/` | Route 화면의 ViewModel. 쿼리 호출 + store 조합 + 이벤트 핸들러 | `stores`, `api`, `ws`, `utils`, `types` |
+| `routes/` | URL → 페이지 조립, layout 제공, controller/view 연결. 비즈니스 분기 최소화 | `features`, `components`, `stores` |
+| `features/` | Route 화면의 ViewModel. 쿼리 호출 + store 조합 + 이벤트 핸들러. 프론트엔드 MVC의 controller 역할 | `stores`, `api`, `ws`, `utils`, `types` |
 | `components/` | 복합 UI. props in, events out | `ui`, `utils`, `types` (스토어 직접 의존 금지 — props로 주입) |
 | `ui/` | 헤드리스 프리미티브 래핑. Tailwind 스타일 적용 | 외부 라이브러리만 |
 | `chart/` | lightweight-charts 5를 도메인 API로 감쌈. Svelte 무의존 | `utils`, `types` |
@@ -192,6 +193,14 @@ apps/web/
 | `utils/`, `types/` | 순수 유틸 | 없음 |
 
 **금지 사항**: `components/`가 `stores/`·`api/`를 직접 import 하지 않는다(테스트/스토리북 안정성). 그런 조립은 `features/`에서만.
+
+### 3.2.1 프론트엔드 MVC 해석
+
+- `Model`: FastAPI 계약 타입, query 응답, runes store의 직렬화 가능한 상태.
+- `View`: `lib/components/**`, `lib/ui/**`. props를 받아 렌더링하고 이벤트만 내보낸다.
+- `Controller`: `lib/features/**`와 thin `routes/**`. dashboard는 `useDashboardPage.svelte.ts`가 fetch, compare overlay, replay, snapshot, dock resize, command orchestration을 맡는다.
+
+이 규약은 고전적 MVC를 그대로 복제하려는 목적이 아니다. SvelteKit 현재 구조를 유지한 채, fat route와 smart component를 줄여 테스트 가능성과 변경 비용을 낮추는 pragmatic MVC 규약이다.
 
 ### 3.3 상태 관리 모델 (Svelte 5 runes)
 

@@ -27,7 +27,7 @@ export function addSignalsOverlay(
     sorted.map((s) => ({
       time: s.time as UTCTimestamp,
       position: isBuy(s.signalType) ? ("belowBar" as const) : ("aboveBar" as const),
-      color: isBuy(s.signalType) ? "#0bda5e" : "#fa6238",
+      color: isBuy(s.signalType) ? "#f04452" : "#4788ff",
       shape: isBuy(s.signalType) ? ("arrowUp" as const) : ("arrowDown" as const),
       size: 1,
     })),

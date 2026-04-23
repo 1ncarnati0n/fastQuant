@@ -1,32 +1,19 @@
 <script lang="ts">
-  import { fetchFundamentals } from "$lib/api/client";
   import type { FundamentalsResponse, MarketType } from "$lib/api/types";
 
   let {
     symbol,
     market,
-  }: { symbol: string; market: MarketType } = $props();
-
-  let data = $state<FundamentalsResponse | null>(null);
-  let loading = $state(false);
-  let error = $state<string | null>(null);
-
-  $effect(() => {
-    if (symbol && market) void load(symbol, market);
-  });
-
-  async function load(sym: string, mkt: MarketType) {
-    loading = true;
-    error = null;
-    data = null;
-    try {
-      data = await fetchFundamentals({ symbol: sym, market: mkt });
-    } catch (e) {
-      error = e instanceof Error ? e.message : "데이터를 불러오지 못했습니다";
-    } finally {
-      loading = false;
-    }
-  }
+    data = null,
+    loading = false,
+    error = null,
+  }: {
+    symbol: string;
+    market: MarketType;
+    data?: FundamentalsResponse | null;
+    loading?: boolean;
+    error?: string | null;
+  } = $props();
 
   function fmtCap(v: number | null | undefined): string {
     if (v == null) return "—";

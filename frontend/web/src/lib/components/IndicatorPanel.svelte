@@ -168,6 +168,13 @@
     selectedKey = selectedKey === spec.key ? null : spec.key;
   }
 
+  function handleIndicatorRowKeydown(event: KeyboardEvent, spec: IndicatorSpec) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      selectIndicator(spec);
+    }
+  }
+
   // ── 키보드 단축키 ────────────────────────────────────────
   function onGlobalKey(e: KeyboardEvent) {
     const tag = (e.target as HTMLElement | null)?.tagName;
@@ -278,9 +285,10 @@
                 class:selected={selectedKey === spec.key}
                 class:active
                 role="button"
+                aria-pressed={selectedKey === spec.key}
                 tabindex="0"
                 onclick={() => selectIndicator(spec)}
-                onkeydown={(e) => e.key === "Enter" && selectIndicator(spec)}
+                onkeydown={(e) => handleIndicatorRowKeydown(e, spec)}
               >
                 <span class="ind-dot" class:dot-on={active} aria-hidden="true"></span>
                 <span class="ind-copy">
@@ -787,6 +795,11 @@
       border-color var(--dur-fast) var(--ease);
     user-select: none;
     position: relative;
+  }
+
+  .ind-row:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 55%, var(--line));
+    outline-offset: 1px;
   }
 
   .ind-row:hover { background: var(--muted-bg); }

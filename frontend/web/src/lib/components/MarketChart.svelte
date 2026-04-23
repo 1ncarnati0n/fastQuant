@@ -79,6 +79,12 @@
 
   let lib: typeof import("lightweight-charts") | null = null;
 
+  function chartFontFamily(): string {
+    if (typeof document === "undefined") return "Inter, 'Noto Sans KR', system-ui, sans-serif";
+    const font = getComputedStyle(document.documentElement).getPropertyValue("--font-sans").trim();
+    return font || "Inter, 'Noto Sans KR', system-ui, sans-serif";
+  }
+
   async function createMainSeries(type: ChartType) {
     if (!chart || !lib) return;
     suppressCrosshair = true;
@@ -137,7 +143,7 @@
       layout: {
         background: { color: p.bg },
         textColor: p.text,
-        fontFamily: "Inter, 'Noto Sans KR', system-ui, sans-serif",
+        fontFamily: chartFontFamily(),
       },
       grid: {
         vertLines: { color: p.grid },

@@ -103,8 +103,8 @@ export const STYLE_TEMPLATES: Record<string, SlotTemplate> = {
   },
   supertrend: {
     slots: [
-      { id: "bull", label: "상승 구간", defaults: defaultLine("#0bda5e", 2) },
-      { id: "bear", label: "하락 구간", defaults: defaultLine("#fa6238", 2) },
+      { id: "bull", label: "상승 구간", defaults: defaultLine("#f04452", 2) },
+      { id: "bear", label: "하락 구간", defaults: defaultLine("#4788ff", 2) },
     ],
   },
   ichimoku: {
@@ -133,8 +133,8 @@ export const STYLE_TEMPLATES: Record<string, SlotTemplate> = {
     slots: [
       { id: "macd",   label: "MACD",       defaults: defaultLine("#38bdf8", 2) },
       { id: "signal", label: "시그널",     defaults: defaultLine("#fb923c", 1) },
-      { id: "histUp", label: "히스토그램(+)", defaults: { color: "#0bda5e", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 0.5 }, kind: "histogram" },
-      { id: "histDn", label: "히스토그램(-)", defaults: { color: "#fa6238", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 0.5 }, kind: "histogram" },
+      { id: "histUp", label: "히스토그램(+)", defaults: { color: "#f04452", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 0.5 }, kind: "histogram" },
+      { id: "histDn", label: "히스토그램(-)", defaults: { color: "#4788ff", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 0.5 }, kind: "histogram" },
     ],
   },
   stochastic: {
@@ -162,8 +162,8 @@ export const STYLE_TEMPLATES: Record<string, SlotTemplate> = {
   adx:  {
     slots: [
       { id: "adx",    label: "ADX",   defaults: defaultLine("#f8fafc", 2) },
-      { id: "plus",   label: "+DI",   defaults: defaultLine("#0bda5e", 1) },
-      { id: "minus",  label: "-DI",   defaults: defaultLine("#fa6238", 1) },
+      { id: "plus",   label: "+DI",   defaults: defaultLine("#f04452", 1) },
+      { id: "minus",  label: "-DI",   defaults: defaultLine("#4788ff", 1) },
       { id: "thresh", label: "25 기준선", defaults: defaultLine("#94a3b8", 1, 2 as LineStyle) },
     ],
   },

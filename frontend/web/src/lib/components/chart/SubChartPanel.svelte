@@ -160,7 +160,7 @@
         s.setData(a.candles.map((cd) => ({
           time: cd.time as TS,
           value: cd.volume,
-          color: cd.close >= cd.open ? "rgba(11,218,94,0.55)" : "rgba(250,98,56,0.55)",
+          color: cd.close >= cd.open ? "rgba(240,68,82,0.55)" : "rgba(71,136,255,0.55)",
         })));
         activeSeries.push(s);
         const last = a.candles.at(-1);
@@ -185,12 +185,12 @@
       case "macd": {
         if (!a.macd?.data.length) break;
         const hist = c.addSeries(lc.HistogramSeries, { priceLineVisible: false, lastValueVisible: false, priceScaleId: "macd" });
-        const macdLine = c.addSeries(lc.LineSeries, { color: "#4ade80", lineWidth: 2, priceLineVisible: false, priceScaleId: "macd" });
-        const sigLine = c.addSeries(lc.LineSeries, { color: "#f87171", lineWidth: 2, priceLineVisible: false, priceScaleId: "macd" });
+        const macdLine = c.addSeries(lc.LineSeries, { color: "#f04452", lineWidth: 2, priceLineVisible: false, priceScaleId: "macd" });
+        const sigLine = c.addSeries(lc.LineSeries, { color: "#4788ff", lineWidth: 2, priceLineVisible: false, priceScaleId: "macd" });
         hist.setData(a.macd.data.map((p) => ({
           time: p.time as TS,
           value: p.histogram,
-          color: p.histogram >= 0 ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.6)",
+          color: p.histogram >= 0 ? "rgba(240,68,82,0.6)" : "rgba(71,136,255,0.6)",
         })));
         macdLine.setData(a.macd.data.map((p) => ({ time: p.time as TS, value: p.macd })));
         sigLine.setData(a.macd.data.map((p) => ({ time: p.time as TS, value: p.signal })));

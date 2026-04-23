@@ -12,6 +12,15 @@
 
 ---
 
+## 진행 요약 (2026-04-23)
+
+- [x] dashboard route thin화: `frontend/web/src/lib/features/dashboard/useDashboardPage.svelte.ts` 추가, 분석/펀더멘털 fetch, compare overlay 캐시, replay, snapshot, dock resize, command orchestration 이동
+- [x] dashboard view 경계 정리: `AppBar`, `ChartAreaHeader`, `RightDock`, `SettingsPanel`, `FundamentalsPanel`, `FundamentalsMainView`가 props/actions 기반으로 정리되고 중복 fetch 제거
+- [x] UI/UX 정리 1차: 펀더멘털 main view 에러 상태 추가, AppBar 변동률 fallback 수정, indicator keyboard 접근성 개선, chart font 토큰 일원화
+- [x] 검증: `pnpm --dir frontend/web check`, `pnpm --dir frontend/web build`
+
+---
+
 ## 0. 현재 이식 상태 스냅샷 (2026-04-18)
 
 ### 이미 옮겨온 것 (`apps/web/src/lib`)
@@ -55,14 +64,14 @@
 | `stores/useSettingsStore` | `lib/stores/workspace.svelte.ts` + `settings.svelte.ts` | **writable → runes 이관 필요** |
 | `stores/useStrategyStore` | `lib/stores/strategy.svelte.ts` | 미시작 |
 | `services/tauriApi.ts` | `lib/api/endpoints/*` + `lib/api/generated/schema.d.ts` | 수기 타입 상태 |
-| `components/dashboard/DashboardTopBar.tsx` | `lib/components/dashboard/TopBar.svelte` | 미시작 |
-| `components/dashboard/DashboardChartHeader.tsx` | `lib/components/dashboard/ChartHeader.svelte` | 미시작 |
-| `components/dashboard/DashboardRightDock.tsx` | `lib/components/dashboard/RightDock.svelte` | 미시작 |
+| `components/dashboard/DashboardTopBar.tsx` | `lib/components/dashboard/AppBar.svelte` | 1차 |
+| `components/dashboard/DashboardChartHeader.tsx` | `lib/components/dashboard/ChartAreaHeader.svelte` | 1차 |
+| `components/dashboard/DashboardRightDock.tsx` | `lib/components/dashboard/RightDock.svelte` | 1차 |
 | `components/MainChart.tsx` + `ChartContainer.tsx` | `lib/components/chart/MarketChart.svelte` + `lib/chart/surface.ts` | 1차 |
 | `components/CrosshairLegend.tsx` | `lib/components/dashboard/CrosshairLegend.svelte` | 미시작 |
 | `components/ChartToolbar.tsx` | `lib/components/chart/ChartToolbar.svelte` | 미시작 |
 | `components/IndicatorSection.tsx` | `lib/components/dashboard/IndicatorDock.svelte` | 1차 |
-| `components/SettingsPanel.tsx` | `lib/components/dashboard/SettingsPanel.svelte` | 미시작 |
+| `components/SettingsPanel.tsx` | `lib/components/dashboard/SettingsPanel.svelte` | 1차 |
 | `components/CommandCenter.tsx` | `lib/components/command/CommandPalette.svelte` | 미시작 |
 | `components/ShortcutsModal.tsx` | `lib/components/command/ShortcutsModal.svelte` | 미시작 |
 | `components/WatchlistSidebar.tsx` + `SymbolSearch.tsx` | `lib/components/watchlist/*` | 1차 |
@@ -182,6 +191,8 @@ apps/web/src/lib/ui/{button,dropdown,tabs,separator,scroll-area,switch,badge}.sv
 - [x] `dashboard/+page.svelte`에서 TopBar · RightDock 컴포넌트로 분리, 접힘/펼침 dockOpen 로컬 상태
 - [x] `RightDock.svelte`: Watchlist / 분석 탭 구조, header, close button, props-only 설계
 - [x] `TopBar.svelte`: 로고(아이콘 + fastQuant), nav, 패널 토글 icon-group, ApiStatus, props-only
+- [x] `dashboard/+page.svelte` controller thin화: `useDashboardPage.svelte.ts`로 fetch/snapshot/replay/dock/command orchestration 이관
+- [x] `AppBar` / `ChartAreaHeader` / `SettingsPanel` / `FundamentalsPanel` / `FundamentalsMainView` props-actions 경계 정리
 - [x] 반응형 브레이크포인트: 1024px 2→1단 전환
 - [ ] 이 Phase에서 필요한 최소 UI 프리미티브 7종 (bits-ui 래핑) 작성
 - [x] `lib/components/dashboard/*`는 **스토어 직접 import 금지** 규약 준수 (props로 주입)
@@ -217,9 +228,9 @@ apps/web/src/lib/components/chart/ChartToolbar.svelte
 - [x] Auto Fibonacci (`overlays/autofib.ts`, createPriceLine 활용)
 - [x] VWAP / Anchored VWAP (`overlays/vwap.ts`)
 - [x] `MarketChart.svelte` Svelte 5 이관: `$props()`, `$effect`, dark palette, 오버레이 플러그인 포인트
-- [ ] Compare 심볼 오버레이 (최대 2개)
-- [ ] 가격 스케일(기본/로그) 토글
-- [ ] 전체화면 토글
+- [x] Compare 심볼 오버레이 (최대 2개)
+- [x] 가격 스케일(기본/로그) 토글
+- [x] 전체화면 토글
 - [ ] `overlays/*` Vitest 단위 테스트 추가
 
 **Gate**: 원본 대비 마지막 200 캔들 수치 편차 < 1% (수동 스팟 체크) + `pnpm check && pnpm build`

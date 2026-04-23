@@ -108,7 +108,7 @@
         y={bar.y}
         width={bar.w}
         height={bar.h}
-        fill={bar.isBull ? "rgba(11,218,94,0.20)" : "rgba(250,98,56,0.20)"}
+        fill={bar.isBull ? "rgba(240,68,82,0.20)" : "rgba(71,136,255,0.20)"}
       />
     {/each}
   </svg>

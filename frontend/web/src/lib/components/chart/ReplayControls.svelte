@@ -1,16 +1,31 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { replay, SPEED_PRESETS, type ReplaySpeed } from "$lib/stores/replay.svelte";
+  import {
+    SPEED_PRESETS,
+    type ReplaySpeed,
+  } from "$lib/features/replay/controlConfig";
+  import type {
+    DashboardReplayActions,
+    DashboardReplayState,
+  } from "$lib/features/dashboard/useDashboardPage.svelte";
 
-  let { totalBars }: { totalBars: number } = $props();
+  let {
+    totalBars,
+    replayState,
+    replayActions,
+  }: {
+    totalBars: number;
+    replayState: DashboardReplayState;
+    replayActions: DashboardReplayActions;
+  } = $props();
 
   // Tick loop using setInterval whose period follows speed
   let timerId: ReturnType<typeof setInterval> | null = null;
 
   function startTimer() {
     stopTimer();
-    const period = Math.max(60, Math.round(600 / replay.speed)); // 1x = 600ms / bar
-    timerId = setInterval(() => replay.tick(totalBars), period);
+    const period = Math.max(60, Math.round(600 / replayState.speed)); // 1x = 600ms / bar
+    timerId = setInterval(() => replayActions.tick(totalBars), period);
   }
 
   function stopTimer() {
@@ -21,9 +36,9 @@
   }
 
   $effect(() => {
-    if (replay.playing && replay.enabled) {
+    if (replayState.playing && replayState.enabled) {
       // Re-start on speed changes
-      void replay.speed;
+      void replayState.speed;
       startTimer();
     } else {
       stopTimer();
@@ -53,7 +68,7 @@
     <button
       type="button"
       class="ctrl"
-      onclick={() => replay.step(-1, totalBars)}
+      onclick={() => replayActions.step(-1, totalBars)}
       aria-label="한 봉 뒤로"
       title="이전 봉 (←)"
     >
@@ -65,12 +80,12 @@
     <button
       type="button"
       class="ctrl ctrl--play"
-      class:is-playing={replay.playing}
-      onclick={() => replay.togglePlaying()}
-      aria-label={replay.playing ? "일시정지" : "재생"}
-      title={replay.playing ? "일시정지 (Space)" : "재생 (Space)"}
+      class:is-playing={replayState.playing}
+      onclick={replayActions.togglePlaying}
+      aria-label={replayState.playing ? "일시정지" : "재생"}
+      title={replayState.playing ? "일시정지 (Space)" : "재생 (Space)"}
     >
-      {#if replay.playing}
+      {#if replayState.playing}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <rect x="6" y="5" width="4" height="14" rx="1" />
           <rect x="14" y="5" width="4" height="14" rx="1" />
@@ -85,7 +100,7 @@
     <button
       type="button"
       class="ctrl"
-      onclick={() => replay.step(1, totalBars)}
+      onclick={() => replayActions.step(1, totalBars)}
       aria-label="한 봉 앞으로"
       title="다음 봉 (→)"
     >
@@ -99,8 +114,8 @@
         <button
           type="button"
           class="speed-btn"
-          class:is-active={replay.speed === sp}
-          onclick={() => replay.setSpeed(sp as ReplaySpeed)}
+          class:is-active={replayState.speed === sp}
+          onclick={() => replayActions.setSpeed(sp as ReplaySpeed)}
         >
           {sp}x
         </button>
@@ -113,16 +128,16 @@
       type="range"
       min="0"
       max={Math.max(0, totalBars - 1)}
-      value={replay.currentIndex}
-      oninput={(e) => replay.setIndex(Number((e.target as HTMLInputElement).value), totalBars)}
+      value={replayState.currentIndex}
+      oninput={(e) => replayActions.setIndex(Number((e.target as HTMLInputElement).value), totalBars)}
       class="progress"
       aria-label="리플레이 위치"
     />
   </div>
 
   <div class="replay__right">
-    <span class="counter">{replay.currentIndex + 1} / {totalBars}</span>
-    <button type="button" class="ctrl-text" onclick={() => replay.exit()} aria-label="리플레이 종료" title="종료 (R)">
+    <span class="counter">{replayState.currentIndex + 1} / {totalBars}</span>
+    <button type="button" class="ctrl-text" onclick={replayActions.exit} aria-label="리플레이 종료" title="종료 (R)">
       종료
     </button>
   </div>

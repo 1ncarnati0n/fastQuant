@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { chart, CHART_TYPE_LABELS } from "$lib/stores/chart.svelte";
-  import { drawing } from "$lib/stores/drawing.svelte";
+  import type { ChartType } from "$lib/stores/chart.svelte";
+  import type { DrawingTool } from "$lib/chart/drawing/types";
   import DropdownMenu, { type DropdownItem } from "$lib/ui/DropdownMenu.svelte";
   import {
     CHART_TYPE_ORDER,
@@ -13,14 +13,28 @@
     interval = "1d",
     loading = false,
     indicatorCount = 0,
+    chartType = "candlestick" as ChartType,
+    chartTypeLabels,
+    drawingTool = "none" as DrawingTool,
+    drawingCount = 0,
     onSelectInterval,
+    onSelectChartType,
+    onSelectDrawingTool,
+    onDeleteOrUndoDrawing,
     onRefresh,
     onOpenIndicators,
   }: {
     interval?: string;
     loading?: boolean;
     indicatorCount?: number;
+    chartType?: ChartType;
+    chartTypeLabels: Record<ChartType, string>;
+    drawingTool?: DrawingTool;
+    drawingCount?: number;
     onSelectInterval?: (iv: string) => void;
+    onSelectChartType?: (type: ChartType) => void;
+    onSelectDrawingTool?: (tool: DrawingTool) => void;
+    onDeleteOrUndoDrawing?: () => void;
     onRefresh?: () => void;
     onOpenIndicators?: () => void;
   } = $props();
@@ -28,9 +42,9 @@
   const chartTypeItems: DropdownItem[] = $derived(
     CHART_TYPE_ORDER.map((key) => ({
       key,
-      label: CHART_TYPE_LABELS[key],
-      active: chart.chartType === key,
-      onSelect: () => chart.setChartType(key),
+      label: chartTypeLabels[key],
+      active: chartType === key,
+      onSelect: () => onSelectChartType?.(key),
     })),
   );
 
@@ -38,8 +52,8 @@
     DRAWING_TOOLS.map((it) => ({
       key: it.key,
       label: it.label,
-      active: drawing.activeTool === it.key,
-      onSelect: () => drawing.setTool(it.key),
+      active: drawingTool === it.key,
+      onSelect: () => onSelectDrawingTool?.(it.key),
     })),
   );
 
@@ -55,7 +69,7 @@
   const minuteLabel = $derived(
     MINUTE_INTERVALS.find((it) => it.key === interval)?.label ?? "분봉",
   );
-  const isDrawing = $derived(drawing.activeTool !== "none");
+  const isDrawing = $derived(drawingTool !== "none");
 </script>
 
 <div class="chart-area-head">
@@ -148,11 +162,8 @@
     <button
       type="button"
       class="tool"
-      disabled={drawing.drawings.length === 0}
-      onclick={() => {
-        if (drawing.selectedId) drawing.remove(drawing.selectedId);
-        else if (drawing.drawings.length > 0) drawing.undo();
-      }}
+      disabled={drawingCount === 0}
+      onclick={onDeleteOrUndoDrawing}
       title="드로잉 삭제/되돌리기"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">

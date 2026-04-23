@@ -6,11 +6,13 @@
     market = "usStock" as MarketType,
     fundamentals = null,
     loading = false,
+    error = null,
   }: {
     symbol?: string;
     market?: MarketType;
     fundamentals?: FundamentalsResponse | null;
     loading?: boolean;
+    error?: string | null;
   } = $props();
 
   function fmtNum(v: number | null | undefined, digits = 2): string {
@@ -94,6 +96,8 @@
 <section class="fund-shell" aria-label="종목정보">
   {#if loading}
     <div class="state">데이터를 불러오는 중…</div>
+  {:else if error}
+    <div class="state state--error">{error}</div>
   {:else if !fundamentals}
     <div class="state">펀더멘털 데이터가 없습니다.</div>
   {:else}
@@ -133,6 +137,10 @@
     color: var(--muted-fore);
     font-size: var(--fs-md);
     padding: 6px 2px;
+  }
+
+  .state--error {
+    color: var(--danger);
   }
 
   .head h2 {

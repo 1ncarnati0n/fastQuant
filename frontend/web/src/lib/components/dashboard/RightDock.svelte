@@ -4,7 +4,11 @@
   import FundamentalsPanel from "$lib/components/dashboard/FundamentalsPanel.svelte";
   import ChartSettingsPanel from "$lib/components/dashboard/ChartSettingsPanel.svelte";
   import type { DockTab } from "$lib/stores/workspace.svelte";
-  import type { AnalysisParams, MarketType } from "$lib/api/types";
+  import type { AnalysisParams, FundamentalsResponse, MarketType } from "$lib/api/types";
+  import type {
+    DashboardSettingsActions,
+    DashboardSettingsState,
+  } from "$lib/features/dashboard/useDashboardPage.svelte";
 
   let {
     activeTab,
@@ -12,6 +16,11 @@
     selectedSymbol,
     selectedMarket,
     interval,
+    fundamentals = null,
+    fundamentalsLoading = false,
+    fundamentalsError = null,
+    settingsState,
+    settingsActions,
     onTabChange,
     onClose,
     onSelectSymbol,
@@ -23,6 +32,11 @@
     selectedSymbol: string;
     selectedMarket: MarketType;
     interval: string;
+    fundamentals?: FundamentalsResponse | null;
+    fundamentalsLoading?: boolean;
+    fundamentalsError?: string | null;
+    settingsState: DashboardSettingsState;
+    settingsActions: DashboardSettingsActions;
     onTabChange: (tab: DockTab) => void;
     onClose?: () => void;
     onSelectSymbol: (symbol: string, market: MarketType, label?: string) => void;
@@ -92,10 +106,16 @@
       <StrategyPanel {params} onParamsChange={onParamsChange} />
     {:else if activeTab === "fundamentals"}
       {#key selectedSymbol}
-        <FundamentalsPanel symbol={selectedSymbol} market={selectedMarket} />
+        <FundamentalsPanel
+          symbol={selectedSymbol}
+          market={selectedMarket}
+          data={fundamentals}
+          loading={fundamentalsLoading}
+          error={fundamentalsError}
+        />
       {/key}
     {:else if activeTab === "settings"}
-      <ChartSettingsPanel {onOpenSettings} />
+      <ChartSettingsPanel {settingsState} {settingsActions} {onOpenSettings} />
     {/if}
   </div>
 </aside>

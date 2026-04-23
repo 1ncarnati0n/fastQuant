@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { AnalysisResponse, FundamentalsResponse, MarketType } from "$lib/api/types";
-  import { workspace } from "$lib/stores/workspace.svelte";
+  import type { Theme } from "$lib/stores/workspace.svelte";
   import ApiStatus from "$lib/components/ApiStatus.svelte";
 
   let {
@@ -10,7 +10,9 @@
     market = "usStock" as MarketType,
     loading = false,
     activeMainTab = "chart",
+    theme = "light" as Theme,
     onSelectMainTab,
+    onToggleTheme,
     onOpenSettings,
     onOpenPalette,
   }: {
@@ -20,7 +22,9 @@
     market?: MarketType;
     loading?: boolean;
     activeMainTab?: "chart" | "fundamentals";
+    theme?: Theme;
     onSelectMainTab?: (tab: "chart" | "fundamentals") => void;
+    onToggleTheme?: () => void;
     onOpenSettings?: () => void;
     onOpenPalette?: () => void;
   } = $props();
@@ -35,9 +39,10 @@
   const candles = $derived(analysis?.candles ?? []);
   const last = $derived(candles.at(-1) ?? null);
   const prev = $derived(candles.length > 1 ? candles.at(-2) ?? null : null);
-  const change = $derived(last && prev ? last.close - prev.close : 0);
-  const changePct = $derived(last && prev && prev.close !== 0 ? (change / prev.close) * 100 : 0);
-  const isUp = $derived(change >= 0);
+  const hasChange = $derived(last !== null && prev !== null && Number.isFinite(last.close) && Number.isFinite(prev.close));
+  const change = $derived(hasChange ? last!.close - prev!.close : null);
+  const changePct = $derived(hasChange && prev!.close !== 0 ? (change! / prev!.close) * 100 : null);
+  const isUp = $derived(change !== null && change >= 0);
   const meta = $derived(MARKET_META[market] ?? MARKET_META.usStock);
 
   function fmt(n: number | null | undefined, digits = 2): string {
@@ -117,12 +122,16 @@
           <span class="market-chip" style:--badge-color={meta.color}>{meta.label}</span>
         </span>
         <span class="price-line">
-          <strong class="quote-price" class:up={isUp} class:down={!isUp}>
+          <strong class="quote-price" class:up={isUp} class:down={hasChange && !isUp}>
             {last ? fmt(last.close) : "—"}
           </strong>
           <span class="quote-sub">전일대비</span>
-          <span class="quote-change" class:up={isUp} class:down={!isUp}>
-            {isUp ? "+" : ""}{fmt(change)} ({isUp ? "+" : ""}{changePct.toFixed(2)}%)
+          <span class="quote-change" class:up={isUp} class:down={hasChange && !isUp}>
+            {#if change === null}
+              —
+            {:else}
+              {isUp ? "+" : ""}{fmt(change)} ({isUp ? "+" : ""}{changePct?.toFixed(2)}%)
+            {/if}
           </span>
         </span>
       </span>
@@ -166,10 +175,10 @@
       <button
         type="button"
         class="icon-btn"
-        onclick={() => workspace.toggleTheme()}
-        title={workspace.theme === "dark" ? "라이트 모드" : "다크 모드"}
+        onclick={onToggleTheme}
+        title={theme === "dark" ? "라이트 모드" : "다크 모드"}
       >
-        {#if workspace.theme === "dark"}
+        {#if theme === "dark"}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></svg>
         {:else}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
