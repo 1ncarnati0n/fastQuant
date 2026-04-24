@@ -2,6 +2,7 @@
   import type { AnalysisResponse, FundamentalsResponse, MarketType } from "$lib/api/types";
   import type { Theme } from "$lib/stores/workspace.svelte";
   import ApiStatus from "$lib/components/ApiStatus.svelte";
+  import { getKrStockLabel } from "$lib/utils/krStocks";
 
   let {
     analysis = null,
@@ -99,6 +100,9 @@
   const yearHigh = $derived(fundamentals?.fiftyTwoWeekHigh ?? null);
   const dayPos = $derived(rangePercent(last?.close, dayLow, dayHigh));
   const yearPos = $derived(rangePercent(last?.close, yearLow, yearHigh));
+  const krStockLabel = $derived(market === "krStock" ? getKrStockLabel(symbol) : null);
+  const symbolName = $derived(market === "krStock" ? (krStockLabel ?? fundamentals?.shortName ?? symbol) : symbol);
+  const showSymbolCode = $derived(market === "krStock" && symbolName !== symbol);
 </script>
 
 <header class="appbar" class:loading>
@@ -110,11 +114,11 @@
       title="심볼 검색 (⌘J)"
       aria-label="심볼 검색"
     >
-      <span class="symbol-logo">{(market === "krStock" && fundamentals?.shortName ? fundamentals.shortName : symbol).slice(0, 2) || "FQ"}</span>
+      <span class="symbol-logo">{(symbolName || "FQ").slice(0, 2)}</span>
       <span class="symbol-copy">
         <span class="symbol-title">
-          {#if market === "krStock" && fundamentals?.shortName}
-            <strong>{fundamentals.shortName}</strong>
+          {#if showSymbolCode}
+            <strong>{symbolName}</strong>
             <span class="symbol-code">{symbol}</span>
           {:else}
             <strong>{symbol || "심볼 선택"}</strong>

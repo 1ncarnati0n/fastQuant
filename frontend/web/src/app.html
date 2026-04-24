@@ -18,13 +18,18 @@
     <!-- Apply theme before first paint to prevent flash -->
     <script>
       try {
-        const saved = JSON.parse(localStorage.getItem("fastquant-workspace-v3") || "{}");
-        if (saved.theme === "light") {
-          document.documentElement.classList.remove("dark");
-        } else {
+        const saved = JSON.parse(
+          localStorage.getItem("fastquant-workspace-v5")
+            || localStorage.getItem("fastquant-workspace-v4")
+            || localStorage.getItem("fastquant-workspace-v3")
+            || "{}"
+        );
+        if (saved.theme === "dark") {
           document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
         }
-      } catch { document.documentElement.classList.add("dark"); }
+      } catch { document.documentElement.classList.remove("dark"); }
     </script>
     %sveltekit.head%
   </head>

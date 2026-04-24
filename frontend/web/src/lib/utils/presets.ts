@@ -1,4 +1,5 @@
 import type { MarketType, WatchlistSnapshot } from "$lib/api/types";
+import { KR_STOCK_LEADERS } from "$lib/utils/krStocks";
 
 export interface PresetSymbol {
   symbol: string;
@@ -64,14 +65,8 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
   },
   {
     key: "kr",
-    label: "국내 대표",
-    items: [
-      { symbol: "005930.KS", label: "삼성전자",       market: "krStock" },
-      { symbol: "000660.KS", label: "SK하이닉스",     market: "krStock" },
-      { symbol: "035420.KS", label: "NAVER",          market: "krStock" },
-      { symbol: "005380.KS", label: "현대차",         market: "krStock" },
-      { symbol: "051910.KS", label: "LG화학",         market: "krStock" },
-    ],
+    label: "국내 주도주",
+    items: KR_STOCK_LEADERS.map((item) => ({ ...item, market: "krStock" })),
   },
 ];
 

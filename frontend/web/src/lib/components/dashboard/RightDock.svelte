@@ -21,6 +21,7 @@
     fundamentalsError = null,
     settingsState,
     settingsActions,
+    variant = "dock",
     onTabChange,
     onClose,
     onSelectSymbol,
@@ -37,6 +38,7 @@
     fundamentalsError?: string | null;
     settingsState: DashboardSettingsState;
     settingsActions: DashboardSettingsActions;
+    variant?: "dock" | "sheet";
     onTabChange: (tab: DockTab) => void;
     onClose?: () => void;
     onSelectSymbol: (symbol: string, market: MarketType, label?: string) => void;
@@ -62,7 +64,7 @@
   );
 </script>
 
-<aside class="dock">
+<aside class="dock dock--{variant}">
   <div class="dock__header">
     <div class="dock__header-copy">
       <div class="dock__title">{headerInfo.title}</div>
@@ -134,6 +136,11 @@
         var(--card) 100%);
     box-shadow: var(--shadow-md);
     overflow: hidden;
+  }
+
+  .dock--sheet {
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.22);
   }
 
   .dock__header {

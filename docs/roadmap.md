@@ -19,6 +19,16 @@
 - [x] UI/UX 정리 1차: 펀더멘털 main view 에러 상태 추가, AppBar 변동률 fallback 수정, indicator keyboard 접근성 개선, chart font 토큰 일원화
 - [x] 검증: `pnpm --dir frontend/web check`, `pnpm --dir frontend/web build`
 
+## 진행 요약 (2026-04-24)
+
+- [x] dashboard mobile 접근성 1차: 900px 이하에서도 quick rail을 bottom nav로 유지하고 `RightDock`을 sheet variant로 열어 watchlist/settings/fundamentals/strategy 접근 유지
+- [x] dashboard rail label 정합: quick rail 문구를 실제 dock tab 의미(`설정`, `관심종목`, `펀더멘털`, `전략`)와 맞춤
+- [x] state UI 통일 1차: `lib/ui/StateMessage.svelte` 추가 후 main/dock fundamentals loading/empty/error 상태 재사용
+- [x] chart overlay 안정화 1차: `AnalysisSummary` 접힘 상태를 class로 노출하고 overlay 최대 높이/scroll/mobile 위치를 고정
+- [x] Strategy Lab route thin화 1차: `lib/features/strategy/useStrategyLabPage.svelte.ts`로 API 호출, loading/error, tab/input/result state 이동
+- [x] 국장 종목 표기 정리: `krStocks` label registry 추가, watchlist/search/header/fundamentals에서 한국어 회사명 우선 표시, 국내 preset을 주도주 중심으로 확장
+- [x] 검증: `pnpm --dir frontend/web check`, `pnpm --dir frontend/web build`
+
 ---
 
 ## 0. 현재 이식 상태 스냅샷 (2026-04-18)

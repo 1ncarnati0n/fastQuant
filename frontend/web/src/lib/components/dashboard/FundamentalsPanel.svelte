@@ -1,5 +1,7 @@
 <script lang="ts">
+  import StateMessage from "$lib/ui/StateMessage.svelte";
   import type { FundamentalsResponse, MarketType } from "$lib/api/types";
+  import { getKrStockLabel } from "$lib/utils/krStocks";
 
   let {
     symbol,
@@ -17,6 +19,11 @@
 
   function fmtCap(v: number | null | undefined): string {
     if (v == null) return "—";
+    const currency = data?.currency ?? (market === "krStock" ? "KRW" : "USD");
+    if (currency === "KRW" || market === "krStock") {
+      if (v >= 1e12) return `${(v / 1e12).toFixed(2)}조원`;
+      return `${(v / 1e8).toFixed(2)}억원`;
+    }
     if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
     if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
     if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
@@ -84,24 +91,18 @@
       },
     ];
   });
+  const krStockLabel = $derived(market === "krStock" ? getKrStockLabel(symbol) : null);
+  const companyName = $derived(krStockLabel ?? data?.shortName ?? symbol);
 </script>
 
 <div class="panel">
   {#if loading}
-    <div class="state-msg">
-      <div class="spinner" aria-label="로딩 중"></div>
-      <span>불러오는 중…</span>
-    </div>
+    <StateMessage kind="loading" message="불러오는 중..." compact />
   {:else if error}
-    <div class="state-msg error">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
-      </svg>
-      <span>{error}</span>
-    </div>
+    <StateMessage kind="error" message={error} compact />
   {:else if data}
     <div class="header">
-      <div class="company-name">{data.shortName ?? symbol}</div>
+      <div class="company-name">{companyName}</div>
       <div class="meta">{symbol} · {data.currency ?? "—"}</div>
     </div>
 
@@ -119,7 +120,7 @@
       </div>
     {/each}
   {:else}
-    <div class="state-msg">데이터 없음</div>
+    <StateMessage kind="empty" message="데이터 없음" compact />
   {/if}
 </div>
 
@@ -130,30 +131,6 @@
     flex-direction: column;
     gap: 12px;
   }
-
-  .state-msg {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 32px 12px;
-    color: var(--muted);
-    font-size: var(--fs-sm);
-  }
-
-  .state-msg.error { color: var(--danger); }
-
-  .spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid var(--line);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    flex-shrink: 0;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
 
   .header {
     padding: 8px 0 4px;

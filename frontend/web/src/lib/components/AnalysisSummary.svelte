@@ -231,7 +231,7 @@
     <span>{error}</span>
   </div>
 {:else if analysis && displayCandle}
-  <div class="analysis-legend">
+  <div class="analysis-legend" class:is-collapsed={collapsed}>
     <!-- OHLCV row -->
     <div class="ohlcv-row">
       <span class="ohlc"><span class="ohlc-key">시작</span>
@@ -484,6 +484,10 @@
     font-size: var(--fs-xs);
     line-height: 1.55;
     flex-shrink: 0;
+  }
+
+  .analysis-legend.is-collapsed {
+    padding-bottom: 4px;
   }
 
   /* Loading / error variant */

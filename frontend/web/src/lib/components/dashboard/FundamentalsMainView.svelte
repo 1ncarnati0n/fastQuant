@@ -1,5 +1,7 @@
 <script lang="ts">
+  import StateMessage from "$lib/ui/StateMessage.svelte";
   import type { FundamentalsResponse, MarketType } from "$lib/api/types";
+  import { getKrStockLabel } from "$lib/utils/krStocks";
 
   let {
     symbol = "",
@@ -91,18 +93,20 @@
       },
     ];
   });
+  const krStockLabel = $derived(market === "krStock" ? getKrStockLabel(symbol) : null);
+  const companyName = $derived(krStockLabel ?? fundamentals?.shortName ?? symbol);
 </script>
 
 <section class="fund-shell" aria-label="종목정보">
   {#if loading}
-    <div class="state">데이터를 불러오는 중…</div>
+    <StateMessage kind="loading" message="펀더멘털 데이터를 불러오는 중..." />
   {:else if error}
-    <div class="state state--error">{error}</div>
+    <StateMessage kind="error" message={error} />
   {:else if !fundamentals}
-    <div class="state">펀더멘털 데이터가 없습니다.</div>
+    <StateMessage kind="empty" message="펀더멘털 데이터가 없습니다." />
   {:else}
     <header class="head">
-      <h2>{fundamentals.shortName ?? symbol}</h2>
+      <h2>{companyName}</h2>
       <p>{symbol} · {fundamentals.currency ?? "—"}</p>
     </header>
 
@@ -131,16 +135,6 @@
     flex-direction: column;
     gap: 14px;
     background: var(--chart-bg);
-  }
-
-  .state {
-    color: var(--muted-fore);
-    font-size: var(--fs-md);
-    padding: 6px 2px;
-  }
-
-  .state--error {
-    color: var(--danger);
   }
 
   .head h2 {

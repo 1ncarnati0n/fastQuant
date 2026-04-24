@@ -1,104 +1,9 @@
 <script lang="ts">
   import TopBar from "$lib/components/dashboard/TopBar.svelte";
   import EquityCurveChart from "$lib/components/EquityCurveChart.svelte";
-  import { analyzePairTrading, runStrategyABacktest, scanMacdBbSignals, scanOrb } from "$lib/api/client";
-  import { defaultAnalysisParams } from "$lib/api/defaults";
-  import type {
-    MacdBbSignal,
-    OrbScanResponse,
-    PairTradingResult,
-    StrategyABacktestResult,
-  } from "$lib/api/types";
+  import { createStrategyLabPageController } from "$lib/features/strategy/useStrategyLabPage.svelte";
 
-  type Tab = "A" | "B" | "ORB";
-
-  let activeTab = $state<Tab>("A");
-  let loading = $state(false);
-  let error = $state<string | null>(null);
-  let resultA = $state<StrategyABacktestResult | null>(null);
-  let macdSignals = $state<MacdBbSignal[]>([]);
-  let pairResult = $state<PairTradingResult | null>(null);
-  let orbResult = $state<OrbScanResponse | null>(null);
-  let pairA = $state("SPY");
-  let pairB = $state("QQQ");
-  let orbSymbols = $state("AAPL,TSLA,NVDA,AMD");
-
-  async function runA() {
-    loading = true;
-    error = null;
-    try {
-      resultA = await runStrategyABacktest({
-        config: { startYear: 2012, initialCapital: 100000, gemWeight: 0.4, taaWeight: 0.4, sectorWeight: 0.2 },
-        interval: "1M",
-        limit: 360,
-      });
-    } catch (e) {
-      error = e instanceof Error ? e.message : "Strategy A 실행 실패";
-    } finally {
-      loading = false;
-    }
-  }
-
-  async function runMacdBb() {
-    loading = true;
-    error = null;
-    try {
-      macdSignals = await scanMacdBbSignals({
-        ...defaultAnalysisParams,
-        symbol: "BTCUSDT",
-        market: "crypto",
-        macd: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
-        showObv: true,
-      });
-    } catch (e) {
-      error = e instanceof Error ? e.message : "MACD/BB scan 실패";
-    } finally {
-      loading = false;
-    }
-  }
-
-  async function runPair() {
-    loading = true;
-    error = null;
-    try {
-      pairResult = await analyzePairTrading({ pairA, pairB, interval: "1d", limit: 500 });
-    } catch (e) {
-      error = e instanceof Error ? e.message : "Pair trading 분석 실패";
-    } finally {
-      loading = false;
-    }
-  }
-
-  async function runOrb() {
-    loading = true;
-    error = null;
-    try {
-      orbResult = await scanOrb({
-        symbols: orbSymbols.split(",").map((s) => s.trim()).filter(Boolean),
-        config: { rangeMinutes: 30, useVwapFilter: true, rvolThreshold: 2, premarketChangeThreshold: 2 },
-        interval: "1m",
-        limit: 240,
-      });
-    } catch (e) {
-      error = e instanceof Error ? e.message : "ORB scan 실패";
-    } finally {
-      loading = false;
-    }
-  }
-
-  const TABS: { id: Tab; label: string; sub: string }[] = [
-    { id: "A",   label: "Strategy A", sub: "GEM · TAA · Sector" },
-    { id: "B",   label: "Strategy B", sub: "MACD/BB · Pair" },
-    { id: "ORB", label: "ORB Scan",   sub: "Opening Range" },
-  ];
-
-  const pairSignalColor = $derived.by(() => {
-    if (!pairResult) return "neutral" as const;
-    const z = pairResult.currentZScore;
-    if (z > 1.5) return "sell" as const;
-    if (z < -1.5) return "buy" as const;
-    return "neutral" as const;
-  });
+  const strategy = createStrategyLabPageController();
 </script>
 
 <div class="layout">
@@ -112,34 +17,34 @@
         <h1 class="hero__title">Strategy Lab</h1>
         <p class="hero__sub">Backend-owned backtesting & signal scanning workflows</p>
       </div>
-      <div class="hero__status" class:running={loading}>
-        <span class="status-label">{loading ? "running" : "idle"}</span>
-        <span class="status-tab">{activeTab}</span>
-        {#if loading}
+      <div class="hero__status" class:running={strategy.loading}>
+        <span class="status-label">{strategy.loading ? "running" : "idle"}</span>
+        <span class="status-tab">{strategy.activeTab}</span>
+        {#if strategy.loading}
           <span class="status-spinner"></span>
         {/if}
       </div>
     </section>
 
-    {#if error}
+    {#if strategy.error}
       <div class="error-banner" role="alert">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
         </svg>
-        {error}
+        {strategy.error}
       </div>
     {/if}
 
     <!-- Tab bar -->
     <div class="tab-bar" role="tablist" aria-label="전략 탭">
-      {#each TABS as tab}
+      {#each strategy.tabs as tab}
         <button
           type="button"
           role="tab"
           class="tab-item"
-          class:active={activeTab === tab.id}
-          aria-selected={activeTab === tab.id}
-          onclick={() => (activeTab = tab.id)}
+          class:active={strategy.activeTab === tab.id}
+          aria-selected={strategy.activeTab === tab.id}
+          onclick={() => (strategy.activeTab = tab.id)}
         >
           <span class="tab-label">{tab.label}</span>
           <span class="tab-sub">{tab.sub}</span>
@@ -151,14 +56,14 @@
     <div class="panel" role="tabpanel">
 
       <!-- ── Strategy A ─────────────────────────── -->
-      {#if activeTab === "A"}
+      {#if strategy.activeTab === "A"}
         <div class="panel-head">
           <div>
             <span class="panel-eye">GEM · TAA · SECTOR TIMING</span>
             <h2>월봉 자산배분 Backtest</h2>
           </div>
-          <button type="button" class="run-btn" onclick={runA} disabled={loading}>
-            {#if loading}
+          <button type="button" class="run-btn" onclick={() => void strategy.runA()} disabled={strategy.loading}>
+            {#if strategy.loading}
               <span class="btn-spinner"></span>실행 중
             {:else}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
@@ -167,53 +72,53 @@
           </button>
         </div>
 
-        {#if resultA}
+        {#if strategy.resultA}
           <div class="metrics-grid">
             <div class="metric">
               <span class="metric__key">Total Return</span>
-              <strong class="metric__val" class:val-pos={(resultA.totalReturn) >= 0} class:val-neg={(resultA.totalReturn) < 0}>
-                {(resultA.totalReturn * 100).toFixed(2)}%
+              <strong class="metric__val" class:val-pos={(strategy.resultA.totalReturn) >= 0} class:val-neg={(strategy.resultA.totalReturn) < 0}>
+                {(strategy.resultA.totalReturn * 100).toFixed(2)}%
               </strong>
             </div>
             <div class="metric">
               <span class="metric__key">CAGR</span>
-              <strong class="metric__val" class:val-pos={resultA.cagr >= 0}>
-                {(resultA.cagr * 100).toFixed(2)}%
+              <strong class="metric__val" class:val-pos={strategy.resultA.cagr >= 0}>
+                {(strategy.resultA.cagr * 100).toFixed(2)}%
               </strong>
             </div>
             <div class="metric">
               <span class="metric__key">Sharpe</span>
-              <strong class="metric__val" class:val-pos={resultA.sharpe >= 1}>
-                {resultA.sharpe.toFixed(2)}
+              <strong class="metric__val" class:val-pos={strategy.resultA.sharpe >= 1}>
+                {strategy.resultA.sharpe.toFixed(2)}
               </strong>
             </div>
             <div class="metric">
               <span class="metric__key">Max Drawdown</span>
               <strong class="metric__val val-neg">
-                {(resultA.maxDrawdown * 100).toFixed(2)}%
+                {(strategy.resultA.maxDrawdown * 100).toFixed(2)}%
               </strong>
             </div>
           </div>
 
           <div class="chart-card">
-            <EquityCurveChart data={resultA.equityCurve} />
+            <EquityCurveChart data={strategy.resultA.equityCurve} />
           </div>
 
           <div class="alloc-card">
             <div class="alloc-row">
               <span class="alloc-key">GEM 현재</span>
-              <strong class="alloc-val">{resultA.currentAllocation?.gem.asset ?? "—"}</strong>
+              <strong class="alloc-val">{strategy.resultA.currentAllocation?.gem.asset ?? "—"}</strong>
             </div>
             <div class="alloc-row">
               <span class="alloc-key">TAA</span>
               <span class="alloc-val">
-                {resultA.currentAllocation?.taa.filter((i) => i.invested).map((i) => i.asset).join(", ") || "—"}
+                {strategy.resultA.currentAllocation?.taa.filter((i) => i.invested).map((i) => i.asset).join(", ") || "—"}
               </span>
             </div>
             <div class="alloc-row">
               <span class="alloc-key">Sectors</span>
               <span class="alloc-val">
-                {resultA.currentAllocation?.sectors.map((i) => i.asset).join(", ") || "—"}
+                {strategy.resultA.currentAllocation?.sectors.map((i) => i.asset).join(", ") || "—"}
               </span>
             </div>
           </div>
@@ -222,37 +127,37 @@
         {/if}
 
       <!-- ── Strategy B ─────────────────────────── -->
-      {:else if activeTab === "B"}
+      {:else if strategy.activeTab === "B"}
         <div class="panel-head">
           <div>
             <span class="panel-eye">MACD/BB · PAIR TRADING</span>
             <h2>Momentum & Cointegration</h2>
           </div>
           <div class="btn-group">
-            <button type="button" class="run-btn" onclick={runMacdBb} disabled={loading}>MACD/BB</button>
-            <button type="button" class="run-btn" onclick={runPair} disabled={loading}>Pair</button>
+            <button type="button" class="run-btn" onclick={() => void strategy.runMacdBb()} disabled={strategy.loading}>MACD/BB</button>
+            <button type="button" class="run-btn" onclick={() => void strategy.runPair()} disabled={strategy.loading}>Pair</button>
           </div>
         </div>
 
         <div class="input-row">
           <label class="field">
             <span>Pair A</span>
-            <input bind:value={pairA} class="text-input" />
+            <input bind:value={strategy.pairA} class="text-input" />
           </label>
           <label class="field">
             <span>Pair B</span>
-            <input bind:value={pairB} class="text-input" />
+            <input bind:value={strategy.pairB} class="text-input" />
           </label>
         </div>
 
         <div class="split-grid">
           <div class="sub-panel">
             <h3 class="sub-title">MACD/BB Signals</h3>
-            {#if macdSignals.length === 0}
+            {#if strategy.macdSignals.length === 0}
               <p class="empty-hint">아직 scan 결과가 없습니다.</p>
             {:else}
               <ul class="data-list">
-                {#each macdSignals.slice(0, 8) as sig}
+                {#each strategy.macdSignals.slice(0, 8) as sig}
                   <li class="data-row">
                     <span class="tag" class:tag-buy={sig.direction === "buy"} class:tag-sell={sig.direction === "sell"}>
                       {sig.direction}
@@ -266,23 +171,23 @@
 
           <div class="sub-panel">
             <h3 class="sub-title">Pair Analysis</h3>
-            {#if pairResult}
+            {#if strategy.pairResult}
               <div class="pair-stat">
                 <div class="data-row">
                   <span class="data-key">Z-score</span>
-                  <strong class="data-val" class:val-pos={pairResult.currentZScore < -1.5} class:val-neg={pairResult.currentZScore > 1.5}>
-                    {pairResult.currentZScore.toFixed(3)}
+                  <strong class="data-val" class:val-pos={strategy.pairResult.currentZScore < -1.5} class:val-neg={strategy.pairResult.currentZScore > 1.5}>
+                    {strategy.pairResult.currentZScore.toFixed(3)}
                   </strong>
                 </div>
                 <div class="data-row">
                   <span class="data-key">Signal</span>
-                  <span class="tag" class:tag-buy={pairSignalColor === "buy"} class:tag-sell={pairSignalColor === "sell"}>
-                    {pairResult.signal}
+                  <span class="tag" class:tag-buy={strategy.pairSignalColor === "buy"} class:tag-sell={strategy.pairSignalColor === "sell"}>
+                    {strategy.pairResult.signal}
                   </span>
                 </div>
                 <div class="data-row">
                   <span class="data-key">Cointegrated</span>
-                  <span class:val-pos={pairResult.isCointegrated}>{pairResult.isCointegrated ? "Yes ✓" : "No"}</span>
+                  <span class:val-pos={strategy.pairResult.isCointegrated}>{strategy.pairResult.isCointegrated ? "Yes ✓" : "No"}</span>
                 </div>
               </div>
             {:else}
@@ -298,7 +203,7 @@
             <span class="panel-eye">OPENING RANGE BREAKOUT</span>
             <h2>Premarket Candidates</h2>
           </div>
-          <button type="button" class="run-btn" onclick={runOrb} disabled={loading}>
+          <button type="button" class="run-btn" onclick={() => void strategy.runOrb()} disabled={strategy.loading}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
@@ -308,18 +213,18 @@
 
         <label class="field field--wide">
           <span>Symbols (콤마 구분)</span>
-          <input bind:value={orbSymbols} class="text-input" />
+          <input bind:value={strategy.orbSymbols} class="text-input" />
         </label>
 
-        {#if orbResult}
+        {#if strategy.orbResult}
           <div class="split-grid">
             <div class="sub-panel">
               <h3 class="sub-title">Stocks in Play</h3>
-              {#if orbResult.stocksInPlay.length === 0}
+              {#if strategy.orbResult.stocksInPlay.length === 0}
                 <p class="empty-hint">조건을 통과한 종목이 없습니다.</p>
               {:else}
                 <ul class="data-list">
-                  {#each orbResult.stocksInPlay as stock}
+                  {#each strategy.orbResult.stocksInPlay as stock}
                     <li class="data-row">
                       <span class="sym-name">{stock.symbol}</span>
                       <span class="rvol-badge">{stock.rVol.toFixed(2)}x RVOL</span>
@@ -331,11 +236,11 @@
 
             <div class="sub-panel">
               <h3 class="sub-title">ORB Signals</h3>
-              {#if orbResult.signals.length === 0}
+              {#if strategy.orbResult.signals.length === 0}
                 <p class="empty-hint">돌파 signal이 없습니다.</p>
               {:else}
                 <ul class="data-list">
-                  {#each orbResult.signals as sig}
+                  {#each strategy.orbResult.signals as sig}
                     <li class="data-row">
                       <span>
                         <span class="sym-name">{sig.symbol}</span>

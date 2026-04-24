@@ -1,8 +1,10 @@
 import { browser } from "$app/environment";
 import { defaultAnalysisParams } from "$lib/api/defaults";
 import type { AnalysisParams, MarketType, SymbolSearchResult } from "$lib/api/types";
+import { resolveKrStockLabel } from "$lib/utils/krStocks";
 
-const STORAGE_KEY = "fastquant-workspace-v4";
+const STORAGE_KEY = "fastquant-workspace-v5";
+const LEGACY_STORAGE_KEYS = ["fastquant-workspace-v4", "fastquant-workspace-v3"];
 const DOCK_WIDTH_STORAGE_KEY = "fastquant-dashboard-dock-width";
 const MAX_RECENT = 12;
 const DEFAULT_DOCK_WIDTH = 420;
@@ -31,7 +33,16 @@ const DEFAULT_WATCHLIST: WatchlistItem[] = [
   { symbol: "AAPL", market: "usStock" },
   { symbol: "TSLA", market: "usStock" },
   { symbol: "AGQ", market: "usStock" },
-  { symbol: "005930.KS", market: "krStock" },
+  { symbol: "005930.KS", market: "krStock", label: "삼성전자" },
+  { symbol: "000660.KS", market: "krStock", label: "SK하이닉스" },
+  { symbol: "005380.KS", market: "krStock", label: "현대차" },
+  { symbol: "000270.KS", market: "krStock", label: "기아" },
+  { symbol: "373220.KS", market: "krStock", label: "LG에너지솔루션" },
+  { symbol: "207940.KS", market: "krStock", label: "삼성바이오로직스" },
+  { symbol: "012450.KS", market: "krStock", label: "한화에어로스페이스" },
+  { symbol: "329180.KS", market: "krStock", label: "HD현대중공업" },
+  { symbol: "034020.KS", market: "krStock", label: "두산에너빌리티" },
+  { symbol: "402340.KS", market: "krStock", label: "SK스퀘어" },
 ];
 
 export type Theme = "dark" | "light";
@@ -58,18 +69,20 @@ function loadSaved(): Saved {
   };
   if (!browser) return fallback;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as Partial<Saved>;
+    const saved = readSavedPayload();
+    if (!saved) return fallback;
+    const parsed = saved.payload;
+    const recentSymbols = Array.isArray(parsed.recentSymbols)
+      ? normalizeRecentSymbols(parsed.recentSymbols as RecentSymbol[])
+      : [];
+    const watchlist = Array.isArray(parsed.watchlist) && parsed.watchlist.length > 0
+      ? normalizeWatchlistItems(parsed.watchlist as WatchlistItem[])
+      : DEFAULT_WATCHLIST;
     return {
       params: sanitizeParams(parsed.params),
       dockTab: (["watchlist", "indicators", "strategy", "fundamentals", "settings"] as DockTab[]).includes(parsed.dockTab as DockTab) ? (parsed.dockTab as DockTab) : "watchlist",
-      recentSymbols: Array.isArray(parsed.recentSymbols)
-        ? (parsed.recentSymbols as RecentSymbol[]).slice(0, MAX_RECENT)
-        : [],
-      watchlist: Array.isArray(parsed.watchlist) && parsed.watchlist.length > 0
-        ? (parsed.watchlist as WatchlistItem[])
-        : DEFAULT_WATCHLIST,
+      recentSymbols,
+      watchlist: saved.legacy ? mergeDefaultWatchlist(watchlist) : watchlist,
       theme: parsed.theme === "dark" ? "dark" : "light",
       dockOpen: parsed.dockOpen === true,
       dockWidth: clampDockWidth(parsed.dockWidth),
@@ -77,6 +90,18 @@ function loadSaved(): Saved {
   } catch {
     return fallback;
   }
+}
+
+function readSavedPayload(): { payload: Partial<Saved>; legacy: boolean } | null {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) return { payload: JSON.parse(raw) as Partial<Saved>, legacy: false };
+
+  for (const key of LEGACY_STORAGE_KEYS) {
+    const legacyRaw = localStorage.getItem(key);
+    if (legacyRaw) return { payload: JSON.parse(legacyRaw) as Partial<Saved>, legacy: true };
+  }
+
+  return null;
 }
 
 function clampDockWidth(value: unknown): number {
@@ -149,8 +174,53 @@ function isMarket(v: unknown): v is MarketType {
   return v === "crypto" || v === "usStock" || v === "krStock" || v === "forex";
 }
 
+function normalizeRecentSymbols(items: RecentSymbol[]): RecentSymbol[] {
+  const normalized: RecentSymbol[] = [];
+  for (const item of items) {
+    const symbol = typeof item.symbol === "string" ? item.symbol.trim().toUpperCase() : "";
+    if (!symbol || !isMarket(item.market)) continue;
+    const label = resolveKrStockLabel(symbol, item.market, item.label);
+    normalized.push(label ? { symbol, market: item.market, label } : { symbol, market: item.market });
+    if (normalized.length >= MAX_RECENT) break;
+  }
+  return normalized;
+}
+
+function normalizeWatchlistItems(items: WatchlistItem[]): WatchlistItem[] {
+  const normalized: WatchlistItem[] = [];
+  const seen = new Set<string>();
+  for (const item of items) {
+    const symbol = typeof item.symbol === "string" ? item.symbol.trim().toUpperCase() : "";
+    if (!symbol || !isMarket(item.market)) continue;
+    const key = `${symbol}:${item.market}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const label = resolveKrStockLabel(symbol, item.market, item.label);
+    normalized.push(label ? { symbol, market: item.market, label } : { symbol, market: item.market });
+  }
+  return normalized.length > 0 ? normalized : DEFAULT_WATCHLIST;
+}
+
+function mergeDefaultWatchlist(items: WatchlistItem[]): WatchlistItem[] {
+  const merged = [...items];
+  const seen = new Set(merged.map((item) => `${item.symbol.toUpperCase()}:${item.market}`));
+  for (const item of DEFAULT_WATCHLIST) {
+    const key = `${item.symbol.toUpperCase()}:${item.market}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(item);
+  }
+  return merged;
+}
+
+function labeledSymbol(symbol: string, market: MarketType, label?: string): WatchlistItem {
+  const sym = symbol.trim().toUpperCase();
+  const resolvedLabel = resolveKrStockLabel(sym, market, label);
+  return resolvedLabel ? { symbol: sym, market, label: resolvedLabel } : { symbol: sym, market };
+}
+
 function upsertRecent(items: RecentSymbol[], next: RecentSymbol): RecentSymbol[] {
-  const n = { ...next, symbol: next.symbol.toUpperCase() };
+  const n = labeledSymbol(next.symbol, next.market, next.label);
   return [
     n,
     ...items.filter(
@@ -235,23 +305,19 @@ function createWorkspace() {
     },
     selectSymbol(symbol: string, market: MarketType, label?: string) {
       params = { ...params, symbol, market };
-      recentSymbols = upsertRecent(recentSymbols, { symbol, market, label });
+      recentSymbols = upsertRecent(recentSymbols, labeledSymbol(symbol, market, label));
     },
     addToWatchlist(symbol: string, market: MarketType, label?: string) {
-      const sym = symbol.toUpperCase();
+      const sym = symbol.trim().toUpperCase();
       if (watchlist.some((w) => w.symbol === sym && w.market === market)) return;
-      watchlist = [...watchlist, { symbol: sym, market, label }];
+      watchlist = [...watchlist, labeledSymbol(sym, market, label)];
     },
     removeFromWatchlist(symbol: string, market: MarketType) {
-      const sym = symbol.toUpperCase();
+      const sym = symbol.trim().toUpperCase();
       watchlist = watchlist.filter((w) => !(w.symbol === sym && w.market === market));
     },
     addSearchResult(result: SymbolSearchResult) {
-      recentSymbols = upsertRecent(recentSymbols, {
-        symbol: result.symbol,
-        market: result.market,
-        label: result.label,
-      });
+      recentSymbols = upsertRecent(recentSymbols, labeledSymbol(result.symbol, result.market, result.label));
     },
     snapshot() {
       return { params, dockTab, recentSymbols };

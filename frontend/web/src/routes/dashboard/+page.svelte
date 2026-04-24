@@ -135,6 +135,37 @@
       </aside>
     {/if}
 
+    {#if dashboard.dockOpen && !dashboard.isFullscreen}
+      <div class="mobile-dock" role="presentation">
+        <button
+          type="button"
+          class="mobile-dock__backdrop"
+          aria-label="패널 닫기"
+          onclick={() => dashboard.toggleDockTab(dashboard.dockTab)}
+        ></button>
+        <div class="mobile-dock__sheet">
+          <RightDock
+            variant="sheet"
+            activeTab={dashboard.dockTab}
+            params={dashboard.params}
+            selectedSymbol={dashboard.params.symbol}
+            selectedMarket={dashboard.params.market}
+            interval={dashboard.params.interval}
+            fundamentals={dashboard.fundamentals}
+            fundamentalsLoading={dashboard.fundamentalsLoading}
+            fundamentalsError={dashboard.fundamentalsError}
+            settingsState={dashboard.settingsState}
+            settingsActions={dashboard.settingsActions}
+            onTabChange={dashboard.openDockTab}
+            onClose={() => dashboard.toggleDockTab(dashboard.dockTab)}
+            onSelectSymbol={dashboard.selectSymbol}
+            onParamsChange={dashboard.updateParams}
+            onOpenSettings={() => dashboard.openSettings("appearance")}
+          />
+        </div>
+      </div>
+    {/if}
+
     <!-- ── Quick rail (rightmost, always-on nav) ── -->
     {#if !dashboard.isFullscreen}
       <aside class="quick-rail top-rail" aria-label="빠른 메뉴">
@@ -143,30 +174,30 @@
           class="rail-btn"
           class:active={dashboard.dockOpen && dashboard.dockTab === "settings"}
           onclick={() => dashboard.toggleDockTab("settings")}
-          title="내 투자"
+          title="설정"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 18h16v2H4zM5 10h3v6H5zm5-4h3v10h-3zm5 6h3v4h-3z"/></svg>
-          <span>내 투자</span>
+          <span>설정</span>
         </button>
         <button
           type="button"
           class="rail-btn"
           class:active={dashboard.dockOpen && dashboard.dockTab === "watchlist"}
           onclick={() => dashboard.toggleDockTab("watchlist")}
-          title="관심"
+          title="관심종목"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-9.33-8.2C.36 8.96 2.4 4.5 6.7 4.5c2.1 0 3.47 1.02 4.3 2.07.83-1.05 2.2-2.07 4.3-2.07 4.3 0 6.34 4.46 4.03 8.3C19 16.65 12 21 12 21Z"/></svg>
-          <span>관심</span>
+          <span>관심종목</span>
         </button>
         <button
           type="button"
           class="rail-btn"
           class:active={dashboard.dockOpen && dashboard.dockTab === "fundamentals"}
           onclick={() => dashboard.toggleDockTab("fundamentals")}
-          title="최근 본"
+          title="펀더멘털"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-2.34-5.66L15 9h7V2l-2.92 2.92A9.97 9.97 0 0 0 12 2Zm1 5h-2v6l5 3 1-1.73-4-2.27Z"/></svg>
-          <span>최근 본</span>
+          <span>펀더멘털</span>
         </button>
         <span class="rail-sep"></span>
         <button
@@ -174,10 +205,10 @@
           class="rail-btn"
           class:active={dashboard.dockOpen && dashboard.dockTab === "strategy"}
           onclick={() => dashboard.toggleDockTab("strategy")}
-          title="실시간"
+          title="전략"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
-          <span>실시간</span>
+          <span>전략</span>
         </button>
       </aside>
     {/if}
@@ -313,12 +344,19 @@
     right: auto;
     z-index: 12;
     width: min(720px, calc(100% - 28px));
-    max-height: 34%;
+    max-height: min(34%, 220px);
     overflow: auto;
     padding: 0;
     border: 0;
     background: transparent;
     pointer-events: auto;
+    overscroll-behavior: contain;
+  }
+
+  .chart-stack :global(.analysis-legend.is-collapsed) {
+    width: fit-content;
+    max-width: calc(100% - 28px);
+    max-height: none;
   }
 
   .chart-stack :global(.ohlcv-row),
@@ -372,6 +410,10 @@
     padding: 12px 0 0;
     border-left: 1px solid var(--border);
     background: var(--muted-bg);
+  }
+
+  .mobile-dock {
+    display: none;
   }
 
   .rail-btn {
@@ -459,9 +501,78 @@
   /* ── Responsive ── */
   @media (max-width: 900px) {
     .sidebar,
-    .dock-resizer,
-    .quick-rail { display: none; }
+    .dock-resizer { display: none; }
     .app { padding: 0; }
-    .body { padding: 0 8px 8px; }
+    .body { padding: 0 8px 72px; }
+
+    .quick-rail {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 31;
+      width: auto;
+      height: calc(58px + env(safe-area-inset-bottom));
+      flex-direction: row;
+      align-items: stretch;
+      gap: 4px;
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+      border-left: 0;
+      border-top: 1px solid var(--border);
+      background: color-mix(in srgb, var(--card) 96%, var(--muted-bg));
+      box-shadow: 0 -10px 24px rgba(25, 31, 40, 0.14);
+    }
+
+    .rail-btn {
+      flex: 1;
+      width: auto;
+      min-height: 0;
+      gap: 3px;
+      border-radius: 8px;
+      font-size: var(--fs-2xs);
+    }
+
+    .rail-sep {
+      display: none;
+    }
+
+    .mobile-dock {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .mobile-dock__backdrop {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      padding: 0;
+      background: rgba(8, 12, 20, 0.48);
+      backdrop-filter: blur(3px);
+      pointer-events: auto;
+    }
+
+    .mobile-dock__sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: min(78dvh, 640px);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      pointer-events: auto;
+    }
+
+    .mobile-dock__sheet :global(.dock) {
+      height: 100%;
+    }
+
+    .chart-stack :global(.analysis-legend) {
+      top: 8px;
+      left: 8px;
+      width: min(560px, calc(100% - 16px));
+      max-height: min(40%, 180px);
+    }
   }
 </style>

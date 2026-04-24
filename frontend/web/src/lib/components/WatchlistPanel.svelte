@@ -3,6 +3,7 @@
   import type { MarketType, SymbolSearchResult, WatchlistSnapshot } from "$lib/api/types";
   import { workspace } from "$lib/stores/workspace.svelte";
   import { formatRelative, intervalToRefreshMs, type PresetSymbol, type SortMode } from "$lib/utils/presets";
+  import { getKrStockLabel } from "$lib/utils/krStocks";
   import {
     screener,
     BUILTIN_PRESETS,
@@ -184,8 +185,12 @@
     searchResults = [];
   }
 
-  function addItem(item: SymbolSearchResult) {
-    workspace.addToWatchlist(item.symbol, item.market, item.label);
+  function searchResultLabel(item: SymbolSearchResult): string {
+    return item.market === "krStock" ? (getKrStockLabel(item.symbol) ?? item.label) : item.label;
+  }
+
+  function addItem(item: SymbolSearchResult, label = item.label) {
+    workspace.addToWatchlist(item.symbol, item.market, label);
     query = "";
     searchResults = [];
   }
@@ -231,17 +236,18 @@
       {:else}
         {#each searchResults.slice(0, 8) as item}
           {@const inList = workspace.watchlist.some(w => w.symbol === item.symbol && w.market === item.market)}
+          {@const displayLabel = searchResultLabel(item)}
           <div class="dropdown-row" role="option" aria-selected="false">
-            <button type="button" class="dropdown-select" onclick={() => select(item.symbol, item.market, item.label)}>
+            <button type="button" class="dropdown-select" onclick={() => select(item.symbol, item.market, displayLabel)}>
               <span class="sym">{item.symbol}</span>
-              <span class="lbl">{item.label} · {item.exchange}</span>
+              <span class="lbl">{displayLabel} · {item.exchange}</span>
             </button>
             <button
               type="button"
               class="add-btn"
               class:added={inList}
               title={inList ? "목록에 있음" : "관심종목 추가"}
-              onclick={() => !inList && addItem(item)}
+              onclick={() => !inList && addItem(item, displayLabel)}
               aria-label={inList ? "이미 추가됨" : "관심종목 추가"}
             >
               {#if inList}

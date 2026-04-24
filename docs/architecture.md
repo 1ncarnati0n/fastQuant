@@ -127,6 +127,7 @@ apps/web/
 │  │  │  │  ├─ useAnalysis.svelte.ts
 │  │  │  │  ├─ useWatchlist.svelte.ts
 │  │  │  │  └─ useShortcuts.svelte.ts
+│  │  │  ├─ strategy/            # Strategy Lab route controller
 │  │  │  ├─ strategy-a/
 │  │  │  ├─ strategy-b/
 │  │  │  └─ strategy-orb/

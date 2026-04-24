@@ -7,6 +7,7 @@ import {
   type PresetSymbol,
   type SortMode,
 } from "$lib/utils/presets";
+import { resolveKrStockLabel } from "$lib/utils/krStocks";
 import {
   OP_LABELS,
   matchesScreener,
@@ -52,7 +53,7 @@ function toPresetSymbol(item: WatchlistItem | RecentSymbol): PresetSymbol {
   return {
     symbol: item.symbol,
     market: item.market,
-    label: item.label ?? item.symbol,
+    label: resolveKrStockLabel(item.symbol, item.market, item.label) ?? item.symbol,
   };
 }
 
