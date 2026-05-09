@@ -139,24 +139,38 @@
           <!-- Row 1: slot title + preview -->
           <div class="slot-head">
             <span class="slot-label">{slot.label}</span>
-            <span class="slot-preview" aria-hidden="true">
-              {#if slot.kind === "histogram"}
-                <span class="preview-bar" style:background={toColor(style)} style:opacity={style.opacity}></span>
-              {:else if slot.kind === "area"}
-                <span class="preview-area" style:background={toColor(style)}></span>
-              {:else if slot.kind === "marker"}
-                <span class="preview-dot" style:background={toColor(style)}></span>
-              {:else}
-                <svg width="80" height="16" viewBox="0 0 80 16">
-                  <line x1="2" y1="8" x2="78" y2="8"
-                        stroke={toColor(style)}
-                        stroke-width={style.width}
-                        stroke-dasharray={lineStylePreview(style.style)}
-                        stroke-linecap="round"
-                  />
+            <div class="slot-actions">
+              <span class="slot-preview" aria-hidden="true">
+                {#if slot.kind === "histogram"}
+                  <span class="preview-bar" style:background={toColor(style)} style:opacity={style.opacity}></span>
+                {:else if slot.kind === "area"}
+                  <span class="preview-area" style:background={toColor(style)}></span>
+                {:else if slot.kind === "marker"}
+                  <span class="preview-dot" style:background={toColor(style)}></span>
+                {:else}
+                  <svg width="80" height="16" viewBox="0 0 80 16">
+                    <line x1="2" y1="8" x2="78" y2="8"
+                          stroke={toColor(style)}
+                          stroke-width={style.width}
+                          stroke-dasharray={lineStylePreview(style.style)}
+                          stroke-linecap="round"
+                    />
+                  </svg>
+                {/if}
+              </span>
+              <button
+                type="button"
+                class="slot-reset"
+                onclick={() => resetSlot(slot.id)}
+                title="이 슬롯만 기본값"
+                aria-label="이 슬롯만 기본값"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/>
+                  <path d="M3 3v5h5"/>
                 </svg>
-              {/if}
-            </span>
+              </button>
+            </div>
           </div>
 
           <!-- Row 2: color + width + style -->
@@ -218,7 +232,7 @@
 
             <!-- Width -->
             {#if slot.kind !== "area"}
-              <div class="ctrl">
+              <div class="ctrl ctrl-width">
                 <span class="ctrl-label">선 두께</span>
                 <div class="width-group" role="radiogroup" aria-label="선 두께">
                   {#each LINE_WIDTH_OPTIONS as w}
@@ -241,7 +255,7 @@
 
             <!-- Line style -->
             {#if slot.kind !== "histogram" && slot.kind !== "marker" && slot.kind !== "area"}
-              <div class="ctrl">
+              <div class="ctrl ctrl-line-style">
                 <span class="ctrl-label">선 스타일</span>
                 <div class="style-group" role="radiogroup" aria-label="선 스타일">
                   {#each LINE_STYLE_OPTIONS as opt}
@@ -297,18 +311,6 @@
               </div>
             </div>
 
-            <button
-              type="button"
-              class="slot-reset"
-              onclick={() => resetSlot(slot.id)}
-              title="이 슬롯만 기본값"
-              aria-label="이 슬롯만 기본값"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/>
-                <path d="M3 3v5h5"/>
-              </svg>
-            </button>
           </div>
         </div>
       {/each}
@@ -321,6 +323,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    container-type: inline-size;
   }
 
   .style-editor-head {
@@ -372,6 +375,7 @@
   .slot-card {
     display: grid;
     gap: 10px;
+    min-width: 0;
     padding: 12px;
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -383,12 +387,24 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+    min-width: 0;
   }
 
   .slot-label {
     font-size: var(--fs-sm);
     font-weight: 700;
     color: var(--foreground);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .slot-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
   }
 
   .slot-preview {
@@ -423,28 +439,40 @@
 
   .slot-controls {
     display: grid;
-    grid-template-columns: auto auto 1fr auto auto;
+    grid-template-columns: minmax(120px, 0.8fr) minmax(130px, 0.8fr) minmax(184px, 1fr) minmax(176px, 1fr);
     gap: 12px;
-    align-items: center;
+    align-items: end;
+    min-width: 0;
   }
 
   .slot-controls:has(.swatch-popover) {
     align-items: start;
   }
 
-  @media (max-width: 880px) {
+  @container (max-width: 640px) {
     .slot-controls {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
     }
     .slot-controls .ctrl-opacity { grid-column: 1 / -1; }
-    .slot-controls .slot-reset   { grid-column: 2 / 3; justify-self: end; }
+    .slot-controls .ctrl-line-style { grid-column: 1 / -1; }
+  }
+
+  @container (max-width: 520px) {
+    .slot-controls {
+      grid-template-columns: 1fr;
+    }
+    .slot-controls .ctrl-opacity,
+    .slot-controls .ctrl-line-style {
+      grid-column: auto;
+    }
   }
 
   .ctrl {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    min-width: 0;
     position: relative;
   }
 
@@ -575,6 +603,7 @@
   /* ── Width ─── */
   .width-group {
     display: inline-flex;
+    flex-wrap: wrap;
     gap: 4px;
     padding: 3px;
     border-radius: 8px;
@@ -587,8 +616,8 @@
     align-items: center;
     justify-content: center;
     gap: 3px;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 30px;
     border: 0;
     border-radius: 6px;
     background: transparent;
@@ -607,7 +636,7 @@
 
   .width-bar {
     display: block;
-    width: 20px;
+    width: 18px;
     border-radius: 1px;
   }
 
@@ -620,6 +649,7 @@
   /* ── Line style ─── */
   .style-group {
     display: inline-flex;
+    flex-wrap: wrap;
     gap: 2px;
     padding: 3px;
     border-radius: 8px;
@@ -630,7 +660,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
+    width: 34px;
     height: 28px;
     border: 0;
     border-radius: 6px;
@@ -651,9 +681,10 @@
   /* ── Opacity ─── */
   .opacity-control {
     display: grid;
-    grid-template-columns: minmax(90px, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 8px;
+    min-width: 0;
   }
 
   .opacity-range {
@@ -686,7 +717,7 @@
   }
 
   .opacity-input {
-    width: 34px;
+    width: 42px;
     padding: 0;
     border: 0;
     outline: none;
@@ -695,10 +726,12 @@
     font: inherit;
     text-align: right;
     font-variant-numeric: tabular-nums;
+    appearance: textfield;
   }
 
   .opacity-input::-webkit-outer-spin-button,
   .opacity-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
     margin: 0;
   }
 

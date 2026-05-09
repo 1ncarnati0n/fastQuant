@@ -6,25 +6,15 @@
   import { INDICATOR_GUIDES } from "$lib/features/indicators/panelGuides";
   import {
     addNumberArrayItem,
-    captureIndicatorValues,
-    disableActiveIndicators,
     getIndicatorFieldValue,
     groupIconPath,
     isIndicatorActive,
     isIndicatorCustomized,
-    matchesIndicatorQuery,
     removeNumberArrayItem,
     resetIndicatorSpec,
     toggleIndicatorActivation,
     updateIndicatorField,
   } from "$lib/features/indicators/panelParams";
-  import {
-    applyIndicatorPresetToParams,
-    createIndicatorPreset,
-    loadIndicatorPresets,
-    persistIndicatorPresets,
-    type IndicatorPreset,
-  } from "$lib/features/indicators/panelPresets";
   import { indicatorVisibility } from "$lib/stores/indicatorVisibility.svelte";
 
   let {
@@ -37,21 +27,12 @@
 
   // ── 상태 ─────────────────────────────────────────────────
   let selectedKey = $state<string | null>(INDICATOR_SPECS[0]?.key ?? null);
-  let query       = $state("");
   let filter      = $state<"all" | "active">("all");
-  let searchEl    = $state<HTMLInputElement | null>(null);
-  let presetName  = $state("");
-  let presetsLoaded = false;
-
-  let indicatorPresets = $state<IndicatorPreset[]>([]);
 
   const selectedSpec = $derived(
     selectedKey ? (INDICATOR_SPECS.find((s) => s.key === selectedKey) ?? null) : null,
   );
   const selectedGuide = $derived(selectedSpec ? (INDICATOR_GUIDES[selectedSpec.key] ?? null) : null);
-  const selectedPresets = $derived(
-    selectedSpec ? indicatorPresets.filter((p) => p.indicatorKey === selectedSpec.key) : [],
-  );
 
   // ── 활성화 상태 ──────────────────────────────────────────
   function isActive(spec: IndicatorSpec): boolean {
@@ -62,16 +43,8 @@
     return isIndicatorCustomized(params, spec);
   }
 
-  // ── 필터링된 리스트 ──────────────────────────────────────
-  const normalizedQuery = $derived(query.trim().toLowerCase());
-
-  function matchesQuery(spec: IndicatorSpec): boolean {
-    return matchesIndicatorQuery(spec, normalizedQuery);
-  }
-
   const filteredSpecs = $derived(
     INDICATOR_SPECS.filter((s) => {
-      if (!matchesQuery(s)) return false;
       if (filter === "active" && !isActive(s)) return false;
       return true;
     }),
@@ -82,7 +55,6 @@
 
   // ── 카운트 ────────────────────────────────────────────────
   const activeCount    = $derived(INDICATOR_SPECS.filter((s) => isActive(s) && s.activation.kind !== "always").length);
-  const totalToggleable = INDICATOR_SPECS.filter((s) => s.activation.kind !== "always").length;
   const customizedCount = $derived(INDICATOR_SPECS.filter((s) => isCustomized(s)).length);
   const upperActiveCount = $derived(INDICATOR_SPECS.filter((s) => s.group === "overlay" && isActive(s)).length);
   const lowerActiveCount = $derived(INDICATOR_SPECS.filter((s) => s.group === "pane" && isActive(s)).length);
@@ -92,10 +64,6 @@
     const wasActive = isActive(spec);
     onParamsChange(toggleIndicatorActivation($state.snapshot(params) as AnalysisParams, spec));
     if (!wasActive) indicatorVisibility.show(spec.key);
-  }
-
-  function disableAll() {
-    onParamsChange(disableActiveIndicators($state.snapshot(params) as AnalysisParams, INDICATOR_SPECS));
   }
 
   // ── 필드 업데이트 ────────────────────────────────────────
@@ -132,33 +100,6 @@
     onParamsChange(resetIndicatorSpec($state.snapshot(params) as AnalysisParams, spec));
   }
 
-  function captureSpecValues(spec: IndicatorSpec) {
-    return captureIndicatorValues(params, spec);
-  }
-
-  function persistPresets(next: IndicatorPreset[]) {
-    indicatorPresets = next;
-    persistIndicatorPresets(next);
-  }
-
-  function savePreset(spec: IndicatorSpec) {
-    const name = presetName.trim();
-    if (!name) return;
-    const next = createIndicatorPreset(spec.key, name, captureSpecValues(spec));
-    persistPresets([next, ...indicatorPresets]);
-    presetName = "";
-  }
-
-  function applyPreset(spec: IndicatorSpec, preset: IndicatorPreset) {
-    onParamsChange(
-      applyIndicatorPresetToParams($state.snapshot(params) as AnalysisParams, spec, preset, isActive(spec)),
-    );
-  }
-
-  function deletePreset(id: string) {
-    persistPresets(indicatorPresets.filter((p) => p.id !== id));
-  }
-
   // ── 헬퍼 ─────────────────────────────────────────────────
   function fieldValue(f: FieldSpec): unknown {
     return getIndicatorFieldValue(params, f);
@@ -175,31 +116,10 @@
     }
   }
 
-  // ── 키보드 단축키 ────────────────────────────────────────
-  function onGlobalKey(e: KeyboardEvent) {
-    const tag = (e.target as HTMLElement | null)?.tagName;
-    const editing = tag === "INPUT" || tag === "TEXTAREA";
-    if (e.key === "/" && !editing) {
-      e.preventDefault();
-      searchEl?.focus();
-    } else if (e.key === "Escape" && editing && (e.target as HTMLElement) === searchEl) {
-      query = "";
-      searchEl?.blur();
-    }
-  }
-
   function groupIcon(group: "overlay" | "pane"): string {
     return groupIconPath(group);
   }
-
-  $effect(() => {
-    if (presetsLoaded) return;
-    presetsLoaded = true;
-    indicatorPresets = loadIndicatorPresets();
-  });
 </script>
-
-<svelte:window on:keydown={onGlobalKey} />
 
 <div class="indicator-shell">
   <!-- ── 좌측 리스트 뷰 ─────────────────────────────────── -->
@@ -212,35 +132,6 @@
 
     <!-- 상단 툴바 -->
     <div class="toolbar">
-      <div class="search">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"/>
-          <path d="m20 20-3-3"/>
-        </svg>
-        <input
-          bind:this={searchEl}
-          bind:value={query}
-          class="search-input"
-          type="search"
-          placeholder="예: RSI, 볼린저, 거래량"
-          aria-label="지표 검색"
-        />
-        {#if query}
-          <button
-            type="button"
-            class="search-clear"
-            onclick={() => { query = ""; searchEl?.focus(); }}
-            aria-label="검색어 지우기"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-              <path d="M18 6 6 18M6 6l12 12"/>
-            </svg>
-          </button>
-        {:else}
-          <kbd class="search-kbd" title="검색 포커스">/</kbd>
-        {/if}
-      </div>
-
       <div class="filter-tabs" role="tablist" aria-label="표시 필터">
         <button
           type="button"
@@ -325,40 +216,18 @@
             </svg>
           </div>
           <strong>결과가 없습니다</strong>
-          <span>
-            {#if query}
-              '{query}'에 해당하는 지표를 찾지 못했어요.
-            {:else}
-              활성화된 지표가 없습니다.
-            {/if}
-          </span>
-          {#if query || filter !== "all"}
+          <span>활성화된 지표가 없습니다.</span>
+          {#if filter !== "all"}
             <button
               type="button"
               class="empty-reset"
-              onclick={() => { query = ""; filter = "all"; }}
+              onclick={() => { filter = "all"; }}
             >필터 초기화</button>
           {/if}
         </div>
       {/if}
     </div>
 
-    <!-- 하단 액션바 -->
-    <div class="list-footer">
-      <span class="footer-status">{activeCount}/{totalToggleable} 활성</span>
-      <button
-        type="button"
-        class="footer-btn"
-        disabled={activeCount === 0}
-        onclick={disableAll}
-        title="활성 지표를 모두 비활성화"
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"/>
-        </svg>
-        모두 끄기
-      </button>
-    </div>
   </div>
 
   <!-- ── 우측 디테일 뷰 ─────────────────────────────────── -->
@@ -374,10 +243,6 @@
         <span>왼쪽 목록에서 지표를 선택하면 설명과 파라미터를 바로 조정할 수 있습니다.</span>
         <div class="empty-hints">
           <div class="hint-row">
-            <kbd>/</kbd>
-            <span>검색 시작</span>
-          </div>
-          <div class="hint-row">
             <kbd>Enter</kbd>
             <span>선택 항목 열기</span>
           </div>
@@ -392,12 +257,6 @@
         <span class="detail-title">{selectedSpec.label}</span>
         <span class="detail-group">{selectedSpec.description}</span>
       </div>
-      <Toggle
-        checked={isActive(selectedSpec)}
-        disabled={selectedSpec.activation.kind === "always"}
-        size="sm"
-        onchange={() => toggleActivation(selectedSpec)}
-      />
     </div>
 
     {#if selectedGuide}
@@ -522,33 +381,6 @@
       </div>
     </div>
 
-    <div class="section-block">
-      <div class="fields-label">스타일 프리셋</div>
-      <div class="preset-save-row">
-        <input
-          class="field-input"
-          type="text"
-          placeholder="프리셋 이름"
-          bind:value={presetName}
-          onkeydown={(e) => {
-            if (e.key === "Enter" && selectedSpec) savePreset(selectedSpec);
-          }}
-        />
-        <button type="button" class="add-btn" onclick={() => savePreset(selectedSpec)}>스타일 저장</button>
-      </div>
-      {#if selectedPresets.length > 0}
-        <div class="preset-list">
-          {#each selectedPresets as preset (preset.id)}
-            <div class="preset-item">
-              <span class="preset-name">{preset.name}</span>
-              <button type="button" class="preset-action" onclick={() => applyPreset(selectedSpec, preset)}>적용</button>
-              <button type="button" class="preset-delete" onclick={() => deletePreset(preset.id)} aria-label="프리셋 삭제">×</button>
-            </div>
-          {/each}
-        </div>
-      {/if}
-    </div>
-
     <div class="detail-footer">
       <button
         type="button"
@@ -576,6 +408,7 @@
     height: 100%;
     background: var(--card);
     color: var(--foreground);
+    container-type: inline-size;
   }
 
   /* ── 좌측 목록 뷰 ─── */
@@ -618,72 +451,6 @@
     position: sticky;
     top: 0;
     z-index: 2;
-  }
-
-  .search {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-
-  .search > svg {
-    position: absolute;
-    left: 10px;
-    color: var(--muted-fore);
-    pointer-events: none;
-  }
-
-  .search-input {
-    width: 100%;
-    padding: 8px 32px 8px 30px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: var(--input);
-    color: var(--foreground);
-    font-size: var(--fs-base);
-    outline: none;
-    transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
-  }
-
-  .search-input::-webkit-search-cancel-button { display: none; }
-
-  .search-input:focus {
-    border-color: var(--primary);
-    background: var(--card);
-  }
-
-  .search-clear {
-    position: absolute;
-    right: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border: 0;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: var(--muted-fore);
-    cursor: pointer;
-    transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
-  }
-
-  .search-clear:hover {
-    color: var(--foreground);
-    background: var(--muted-bg);
-  }
-
-  .search-kbd {
-    position: absolute;
-    right: 8px;
-    padding: 1px 6px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--card);
-    color: var(--muted-fore);
-    font-size: var(--fs-2xs);
-    font-family: inherit;
-    pointer-events: none;
   }
 
   .filter-tabs {
@@ -857,7 +624,7 @@
     flex-shrink: 0;
   }
 
-  /* 빈 상태 (검색 결과 없음) */
+  /* 빈 상태 */
   .empty-filter {
     display: flex;
     flex-direction: column;
@@ -906,48 +673,6 @@
 
   .empty-reset:hover { border-color: var(--primary); }
 
-  /* 하단 액션바 */
-  .list-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 10px 14px;
-    border-top: 1px solid var(--border);
-    background: var(--card);
-  }
-
-  .footer-status {
-    font-size: var(--fs-xs);
-    color: var(--muted-fore);
-    font-weight: 700;
-  }
-
-  .footer-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: var(--card);
-    color: var(--foreground);
-    font-size: var(--fs-xs);
-    font-weight: 700;
-    cursor: pointer;
-    transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
-  }
-
-  .footer-btn:hover:not(:disabled) {
-    border-color: var(--destructive);
-    color: var(--destructive);
-  }
-
-  .footer-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
   /* ── 우측 디테일 뷰 ─── */
   .detail-view {
     display: flex;
@@ -956,7 +681,12 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     background: var(--card);
+  }
+
+  .detail-view > * {
+    flex-shrink: 0;
   }
 
   .detail-view--empty {
@@ -1165,6 +895,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 12px;
     padding: 8px 14px;
     min-height: 44px;
@@ -1203,8 +934,12 @@
   .number-field {
     display: inline-flex;
     align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 6px;
     flex-shrink: 0;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .step-btn {
@@ -1235,6 +970,7 @@
     color: var(--muted-fore);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
+    white-space: nowrap;
   }
 
   /* ── numberArray 필드 ─── */
@@ -1308,6 +1044,7 @@
 
   .array-add {
     display: flex;
+    flex-wrap: wrap;
     gap: 4px;
   }
 
@@ -1344,57 +1081,7 @@
 
   .style-editor-wrap {
     padding: 0 14px 12px;
-  }
-
-  .preset-save-row {
-    display: flex;
-    gap: 8px;
-    padding: 0 14px 10px;
-  }
-
-  .preset-list {
-    border-top: 1px solid var(--border);
-    padding: 10px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 220px;
-    overflow-y: auto;
-  }
-
-  .preset-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 8px 10px;
-    background: var(--muted-bg);
-  }
-
-  .preset-name {
-    flex: 1;
     min-width: 0;
-    font-size: var(--fs-sm);
-    color: var(--foreground);
-    font-weight: 600;
-  }
-
-  .preset-action,
-  .preset-delete {
-    border: 1px solid var(--border);
-    background: var(--card);
-    border-radius: 8px;
-    height: 28px;
-    padding: 0 10px;
-    font-size: var(--fs-xs);
-    color: var(--foreground);
-    cursor: pointer;
-  }
-
-  .preset-delete {
-    width: 28px;
-    padding: 0;
   }
 
   .reset-btn {

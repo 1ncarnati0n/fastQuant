@@ -34,7 +34,7 @@
   import { crosshair } from "$lib/stores/crosshair.svelte";
   import { drawing } from "$lib/stores/drawing.svelte";
   import { indicatorVisibility } from "$lib/stores/indicatorVisibility.svelte";
-  import { indicatorStyles } from "$lib/stores/indicatorStyles.svelte";
+  import { indicatorStyles, STYLE_TEMPLATES, toColor } from "$lib/stores/indicatorStyles.svelte";
   import { workspace } from "$lib/stores/workspace.svelte";
   import {
     buildAnalysisDataKey,
@@ -43,6 +43,12 @@
     toHeikinAshi,
     type OhlcvValue,
   } from "$lib/features/chart/marketChartData";
+
+  type TimePoint = { time: number };
+  type ValuePoint = TimePoint & { value: number };
+  type PaneLegendValue = { label?: string; value: string; color?: string };
+  type PaneLegendModel = { label: string; values: PaneLegendValue[] };
+  type PaneLegendView = PaneLegendModel & { key: string; top: number };
 
   let {
     analysis = null,
@@ -68,6 +74,10 @@
   let overlays: OverlayHandle[] = [];
   let compareOverlays: OverlayHandle[] = [];
   let paneHandles: PaneHandle[] = [];
+  let paneLegendItems = $state<PaneLegendView[]>([]);
+  let paneLegendBuilders = new Map<number, () => PaneLegendModel | null>();
+  let paneLegendRenderFrame: number | null = null;
+  let paneLegendRenderTimer: number | null = null;
   const paneFrame = new PaneFrame();
   let resizeObserver: ResizeObserver | null = null;
   let suppressCrosshair = false;
@@ -78,11 +88,122 @@
   let ohlcvMap = new Map<number, OhlcvValue>();
 
   let lib: typeof import("lightweight-charts") | null = null;
+  const LOWER_PANE_HEIGHT_SCALE = 0.5;
+  const MIN_LOWER_PANE_HEIGHT = 72;
+  const MIN_MAIN_PANE_HEIGHT = 240;
 
   function chartFontFamily(): string {
     if (typeof document === "undefined") return "Inter, 'Noto Sans KR', system-ui, sans-serif";
     const font = getComputedStyle(document.documentElement).getPropertyValue("--font-sans").trim();
     return font || "Inter, 'Noto Sans KR', system-ui, sans-serif";
+  }
+
+  function pointAtTimeOrLast<T extends TimePoint>(data: T[] | null | undefined, time: number | null): T | null {
+    if (!data?.length) return null;
+    if (time === null) return data[data.length - 1] ?? null;
+    for (let i = data.length - 1; i >= 0; i -= 1) {
+      if (data[i].time <= time) return data[i];
+    }
+    return data[0] ?? null;
+  }
+
+  function formatIndicatorValue(value: number | null | undefined, digits = 2): string {
+    if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+    return value.toLocaleString(undefined, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    });
+  }
+
+  function formatCompactValue(value: number | null | undefined): string {
+    if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
+    if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+    if (abs >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+    return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+
+  function styleSlotColor(indicatorKey: string, slotIndex = 0, fallback = "var(--chart-text)") {
+    const template = STYLE_TEMPLATES[indicatorKey];
+    const slot = template?.slots[slotIndex];
+    return slot ? toColor(indicatorStyles.resolve(indicatorKey, slot)) : fallback;
+  }
+
+  function buildPointLegend(
+    label: string,
+    indicatorKey: string,
+    data: ValuePoint[] | null | undefined,
+    digits = 2,
+    compact = false,
+  ): PaneLegendModel | null {
+    const point = pointAtTimeOrLast(data, crosshair.values.time);
+    if (!point) return null;
+    return {
+      label,
+      values: [{
+        value: compact ? formatCompactValue(point.value) : formatIndicatorValue(point.value, digits),
+        color: styleSlotColor(indicatorKey),
+      }],
+    };
+  }
+
+  function clearPaneLegends() {
+    paneLegendItems = [];
+  }
+
+  function cancelPaneLegendRender() {
+    if (typeof window === "undefined") return;
+    if (paneLegendRenderFrame !== null) {
+      window.cancelAnimationFrame(paneLegendRenderFrame);
+      paneLegendRenderFrame = null;
+    }
+    if (paneLegendRenderTimer !== null) {
+      window.clearTimeout(paneLegendRenderTimer);
+      paneLegendRenderTimer = null;
+    }
+  }
+
+  function schedulePaneLegendRender() {
+    if (typeof window === "undefined") return;
+    cancelPaneLegendRender();
+    paneLegendRenderFrame = window.requestAnimationFrame(() => {
+      paneLegendRenderFrame = null;
+      renderPaneLegends();
+      if (paneLegendBuilders.size > 0 && paneLegendItems.length === 0) {
+        paneLegendRenderTimer = window.setTimeout(() => {
+          paneLegendRenderTimer = null;
+          renderPaneLegends();
+        }, 60);
+      }
+    });
+  }
+
+  function renderPaneLegends() {
+    clearPaneLegends();
+    if (!chart || paneLegendBuilders.size === 0) return;
+
+    const panes = chart.panes();
+    let top = 0;
+    const nextItems: PaneLegendView[] = [];
+
+    panes.forEach((pane, paneIndex) => {
+      const buildLegend = paneLegendBuilders.get(paneIndex);
+      if (buildLegend) {
+        const model = buildLegend();
+        if (model) {
+          nextItems.push({ ...model, key: String(paneIndex), top: top + 7 });
+        }
+      }
+      top += pane.getHeight();
+    });
+
+    paneLegendItems = nextItems;
+  }
+
+  function addPaneHandle(handle: PaneHandle, buildLegend: () => PaneLegendModel | null) {
+    paneHandles.push(handle);
+    paneLegendBuilders.set(handle.paneIndex, buildLegend);
   }
 
   async function createMainSeries(type: ChartType) {
@@ -144,6 +265,10 @@
         background: { color: p.bg },
         textColor: p.text,
         fontFamily: chartFontFamily(),
+        panes: {
+          separatorColor: p.border,
+          separatorHoverColor: p.separatorHover,
+        },
       },
       grid: {
         vertLines: { color: p.grid },
@@ -195,6 +320,8 @@
     suppressCrosshair = true;
     overlays.forEach((o) => o.remove());
     compareOverlays.forEach((o) => o.remove());
+    cancelPaneLegendRender();
+    clearPaneLegends();
     paneHandles.forEach((h) => h.remove());
     chart?.remove();
     chart = null;
@@ -213,6 +340,13 @@
     void indicatorVisibility.hidden;
     if (analysis && mainSeries && chart) {
       untrack(() => syncVisibilityOnly());
+    }
+  });
+
+  $effect(() => {
+    void crosshair.values.time;
+    if (analysis && chart && paneHandles.length > 0) {
+      untrack(() => schedulePaneLegendRender());
     }
   });
 
@@ -245,7 +379,14 @@
     if (!chart) return;
     const p = readChartPalette();
     chart.applyOptions({
-      layout: { background: { color: p.bg }, textColor: p.text },
+      layout: {
+        background: { color: p.bg },
+        textColor: p.text,
+        panes: {
+          separatorColor: p.border,
+          separatorHoverColor: p.separatorHover,
+        },
+      },
       grid: { vertLines: { color: p.grid }, horzLines: { color: p.grid } },
     });
     if (!mainSeries || !currentSeriesType) return;
@@ -322,33 +463,119 @@
   }
 
   function syncPanes() {
+    clearPaneLegends();
+    paneLegendBuilders.clear();
     paneHandles.forEach((h) => h.remove());
     paneHandles = [];
     paneFrame.reset();
     if (!chart || !analysis) return;
+    const a = analysis;
 
-    if (workspace.params.showVolume && !isChartHidden("volume") && analysis.candles.length)
-      paneHandles.push(addVolumePane(chart, paneFrame.alloc("volume"), analysis.candles));
-    if (workspace.params.showRsi && !isChartHidden("rsi") && analysis.rsi.length)
-      paneHandles.push(addRsiPane(chart, paneFrame.alloc("rsi"), analysis.rsi));
-    if (workspace.params.macd && !isChartHidden("macd") && analysis.macd?.data.length)
-      paneHandles.push(addMacdPane(chart, paneFrame.alloc("macd"), analysis.macd.data));
-    if (workspace.params.stochastic && !isChartHidden("stochastic") && analysis.stochastic?.data.length)
-      paneHandles.push(addStochasticPane(chart, paneFrame.alloc("stoch"), analysis.stochastic.data));
-    if (workspace.params.showObv && !isChartHidden("showObv") && analysis.obv?.data.length)
-      paneHandles.push(addObvPane(chart, paneFrame.alloc("obv"), analysis.obv.data));
-    if (workspace.params.mfi && !isChartHidden("mfi") && analysis.mfi?.data.length)
-      paneHandles.push(addMfiPane(chart, paneFrame.alloc("mfi"), analysis.mfi.data));
-    if (workspace.params.cmf && !isChartHidden("cmf") && analysis.cmf?.data.length)
-      paneHandles.push(addCmfPane(chart, paneFrame.alloc("cmf"), analysis.cmf.data));
-    if (workspace.params.adx && !isChartHidden("adx") && analysis.adx?.data.length)
-      paneHandles.push(addAdxPane(chart, paneFrame.alloc("adx"), analysis.adx.data));
-    if (workspace.params.showCvd && !isChartHidden("showCvd") && analysis.cvd?.data.length)
-      paneHandles.push(addCvdPane(chart, paneFrame.alloc("cvd"), analysis.cvd.data));
-    if (workspace.params.stc && !isChartHidden("stc") && analysis.stc?.data.length)
-      paneHandles.push(addStcPane(chart, paneFrame.alloc("stc"), analysis.stc.data));
-    if (workspace.params.showAtr && !isChartHidden("atr") && analysis.atr?.data.length)
-      paneHandles.push(addAtrPane(chart, paneFrame.alloc("atr"), analysis.atr.data));
+    if (workspace.params.showVolume && !isChartHidden("volume") && a.candles.length) {
+      addPaneHandle(addVolumePane(chart, paneFrame.alloc("volume"), a.candles), () => {
+        const candle = pointAtTimeOrLast(a.candles, crosshair.values.time);
+        if (!candle) return null;
+        return {
+          label: "거래량",
+          values: [{
+            value: formatCompactValue(candle.volume),
+            color: candle.close >= candle.open ? styleSlotColor("volume", 0, "#f04452") : styleSlotColor("volume", 1, "#4788ff"),
+          }],
+        };
+      });
+    }
+    if (workspace.params.showRsi && !isChartHidden("rsi") && a.rsi.length) {
+      addPaneHandle(addRsiPane(chart, paneFrame.alloc("rsi"), a.rsi), () => buildPointLegend("RSI", "rsi", a.rsi, 2));
+    }
+    if (workspace.params.macd && !isChartHidden("macd") && a.macd?.data.length) {
+      addPaneHandle(addMacdPane(chart, paneFrame.alloc("macd"), a.macd.data), () => {
+        const point = pointAtTimeOrLast(a.macd?.data, crosshair.values.time);
+        if (!point) return null;
+        return {
+          label: "MACD",
+          values: [
+            { value: formatIndicatorValue(point.macd, 4), color: styleSlotColor("macd", 0, "#38bdf8") },
+            { label: "Signal", value: formatIndicatorValue(point.signal, 4), color: styleSlotColor("macd", 1, "#fb923c") },
+            {
+              label: "Hist",
+              value: formatIndicatorValue(point.histogram, 4),
+              color: point.histogram >= 0 ? styleSlotColor("macd", 2, "#f04452") : styleSlotColor("macd", 3, "#4788ff"),
+            },
+          ],
+        };
+      });
+    }
+    if (workspace.params.stochastic && !isChartHidden("stochastic") && a.stochastic?.data.length) {
+      addPaneHandle(addStochasticPane(chart, paneFrame.alloc("stoch"), a.stochastic.data), () => {
+        const point = pointAtTimeOrLast(a.stochastic?.data, crosshair.values.time);
+        if (!point) return null;
+        return {
+          label: "Stochastic",
+          values: [
+            { label: "%K", value: formatIndicatorValue(point.k, 2), color: styleSlotColor("stochastic", 0, "#34d399") },
+            { label: "%D", value: formatIndicatorValue(point.d, 2), color: styleSlotColor("stochastic", 1, "#f472b6") },
+          ],
+        };
+      });
+    }
+    if (workspace.params.showObv && !isChartHidden("showObv") && a.obv?.data.length) {
+      addPaneHandle(addObvPane(chart, paneFrame.alloc("obv"), a.obv.data), () => buildPointLegend("OBV", "obv", a.obv?.data, 0, true));
+    }
+    if (workspace.params.mfi && !isChartHidden("mfi") && a.mfi?.data.length) {
+      addPaneHandle(addMfiPane(chart, paneFrame.alloc("mfi"), a.mfi.data), () => buildPointLegend("MFI", "mfi", a.mfi?.data, 2));
+    }
+    if (workspace.params.cmf && !isChartHidden("cmf") && a.cmf?.data.length) {
+      addPaneHandle(addCmfPane(chart, paneFrame.alloc("cmf"), a.cmf.data), () => buildPointLegend("CMF", "cmf", a.cmf?.data, 3));
+    }
+    if (workspace.params.adx && !isChartHidden("adx") && a.adx?.data.length) {
+      addPaneHandle(addAdxPane(chart, paneFrame.alloc("adx"), a.adx.data), () => {
+        const point = pointAtTimeOrLast(a.adx?.data, crosshair.values.time);
+        if (!point) return null;
+        return {
+          label: "ADX",
+          values: [
+            { value: formatIndicatorValue(point.adx, 2), color: styleSlotColor("adx", 0, "#f8fafc") },
+            { label: "+DI", value: formatIndicatorValue(point.plusDi, 2), color: styleSlotColor("adx", 1, "#f04452") },
+            { label: "-DI", value: formatIndicatorValue(point.minusDi, 2), color: styleSlotColor("adx", 2, "#4788ff") },
+          ],
+        };
+      });
+    }
+    if (workspace.params.showCvd && !isChartHidden("showCvd") && a.cvd?.data.length) {
+      addPaneHandle(addCvdPane(chart, paneFrame.alloc("cvd"), a.cvd.data), () => buildPointLegend("CVD", "cvd", a.cvd?.data, 0, true));
+    }
+    if (workspace.params.stc && !isChartHidden("stc") && a.stc?.data.length) {
+      addPaneHandle(addStcPane(chart, paneFrame.alloc("stc"), a.stc.data), () => buildPointLegend("STC", "stc", a.stc?.data, 2));
+    }
+    if (workspace.params.showAtr && !isChartHidden("atr") && a.atr?.data.length) {
+      addPaneHandle(addAtrPane(chart, paneFrame.alloc("atr"), a.atr.data), () => buildPointLegend("ATR", "atr", a.atr?.data, 2));
+    }
+
+    applyCompactLowerPaneHeights();
+    schedulePaneLegendRender();
+  }
+
+  function applyCompactLowerPaneHeights() {
+    if (!chart || paneHandles.length === 0) return;
+
+    const panes = chart.panes();
+    const lowerPanes = paneHandles
+      .map((handle) => panes[handle.paneIndex])
+      .filter((pane) => pane !== undefined);
+
+    if (lowerPanes.length === 0) return;
+
+    const totalChartHeight = panes.reduce((sum, pane) => sum + pane.getHeight(), 0);
+    const equalPaneHeight = totalChartHeight / (lowerPanes.length + 1);
+    const maxLowerPaneHeight = Math.max(
+      MIN_LOWER_PANE_HEIGHT,
+      Math.floor((totalChartHeight - MIN_MAIN_PANE_HEIGHT) / lowerPanes.length),
+    );
+    const targetHeight = Math.max(
+      MIN_LOWER_PANE_HEIGHT,
+      Math.min(Math.round(equalPaneHeight * LOWER_PANE_HEIGHT_SCALE), maxLowerPaneHeight),
+    );
+    panes[0]?.setHeight(Math.max(MIN_MAIN_PANE_HEIGHT, totalChartHeight - targetHeight * lowerPanes.length));
   }
 
   function syncCompareOverlays() {
@@ -379,6 +606,7 @@
     void indicatorStyles.version;
     overlays.forEach((h) => h.applyStyle?.());
     paneHandles.forEach((h) => h.applyStyle?.());
+    schedulePaneLegendRender();
   });
 
   function syncCandles() {
@@ -439,6 +667,17 @@
 
 <div class="chart-wrapper" aria-label="Market candlestick chart">
   <div bind:this={container} class="chart"></div>
+  {#each paneLegendItems as item (item.key)}
+    <div class="pane-legend" style:top={`${item.top}px`}>
+      <span class="pane-legend__label">{item.label}</span>
+      {#each item.values as value}
+        {#if value.label}
+          <span class="pane-legend__key">{value.label}</span>
+        {/if}
+        <span class="pane-legend__value" style:color={value.color}>{value.value}</span>
+      {/each}
+    </div>
+  {/each}
   {#if workspace.params.showVolumeProfile && !indicatorVisibility.hidden.has("volumeProfile")}
     <VolumeProfileLayer {chart} series={mainSeries} candles={analysis?.candles ?? []} />
   {/if}
@@ -456,6 +695,44 @@
   .chart {
     width: 100%;
     height: 100%;
+  }
+
+  .pane-legend {
+    position: absolute;
+    left: 12px;
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: calc(100% - 96px);
+    min-height: 18px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
+    color: var(--muted-foreground);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    line-height: 1.2;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    backdrop-filter: blur(4px);
+  }
+
+  .pane-legend__label {
+    color: var(--foreground);
+    font-weight: 800;
+  }
+
+  .pane-legend__key {
+    color: var(--muted-foreground);
+    font-weight: 700;
+  }
+
+  .pane-legend__value {
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
   }
 
   /* Crosshair cursor rule lives in app.css (uses :has() across child component) */

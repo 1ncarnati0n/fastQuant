@@ -243,8 +243,8 @@
   }
 
   :global(.minute-menu) {
-    min-width: 184px;
-    padding: 10px 0;
+    min-width: 116px;
+    padding: 4px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: var(--card);
@@ -252,11 +252,11 @@
   }
 
   :global(.minute-menu .dd-item) {
-    min-height: 48px;
-    padding: 0 24px;
-    border-radius: 0;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 6px;
     color: var(--text);
-    font-size: var(--fs-xl);
+    font-size: var(--fs-base);
     font-weight: 700;
     letter-spacing: 0;
   }

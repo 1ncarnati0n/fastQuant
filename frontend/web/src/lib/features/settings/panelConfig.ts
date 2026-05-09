@@ -9,16 +9,3 @@ export const SETTINGS_TAB_ITEMS: TabItem[] = [
   { key: "shortcuts", label: "단축키", hint: "키보드 가이드" },
   { key: "backtest", label: "백테스트", hint: "전략 Lab 이동" },
 ];
-
-export function formatSnapshotDate(timestamp: number): string {
-  try {
-    return new Date(timestamp).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "";
-  }
-}

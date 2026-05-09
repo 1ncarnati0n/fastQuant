@@ -38,6 +38,7 @@
   --chart-fore:       #89919d;
   --chart-grid:       rgba(154, 165, 179, 0.18);
   --chart-border:     #eef1f5;
+  --chart-separator-hover: rgba(137, 145, 157, 0.16);
   --candle-up:        #f04452;
   --candle-down:      #4788ff;
 
@@ -138,6 +139,7 @@ html.dark {
   --chart-fore:       #8f98a8;
   --chart-grid:       rgba(148, 163, 184, 0.14);
   --chart-border:     #252d3a;
+  --chart-separator-hover: rgba(148, 163, 184, 0.12);
   --candle-up:        #f04452;
   --candle-down:      #4f8eff;
 

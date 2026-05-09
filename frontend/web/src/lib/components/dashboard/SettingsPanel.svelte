@@ -5,7 +5,7 @@
   import { SPEED_PRESETS, type ReplaySpeed } from "$lib/features/replay/controlConfig";
   import { SHORTCUT_HELP_GROUPS } from "$lib/utils/shortcuts";
   import type { AnalysisParams } from "$lib/api/types";
-  import { SETTINGS_TAB_ITEMS, formatSnapshotDate } from "$lib/features/settings/panelConfig";
+  import { SETTINGS_TAB_ITEMS } from "$lib/features/settings/panelConfig";
   import { CHART_TYPE_ORDER, PRICE_SCALE_MODES } from "$lib/features/chart/controlConfig";
   import type {
     DashboardSettingsActions,
@@ -29,13 +29,12 @@
   } = $props();
 
   let tab = $state("indicators");
+  let indicatorPanelHeight = $state(440);
+  let resizingIndicators = $state(false);
 
   $effect(() => {
     if (open) tab = initialTab;
   });
-
-  // Snapshot form
-  let snapshotName = $state("");
 
   // Compare symbol input
   let compareInput = $state("");
@@ -46,18 +45,59 @@
       compareInput = "";
     }
   }
-  function takeSnapshot() {
-    settingsActions.takeSnapshot(snapshotName);
-    snapshotName = "";
+
+  function maxIndicatorPanelHeight(): number {
+    if (typeof window === "undefined") return 760;
+    return Math.max(340, Math.min(860, window.innerHeight - 260));
   }
 
-  function fmtDate(ts: number): string {
-    return formatSnapshotDate(ts);
+  function clampIndicatorPanelHeight(value: number): number {
+    return Math.max(280, Math.min(maxIndicatorPanelHeight(), Math.round(value)));
   }
 
-  function applyAndClose(snap: DashboardSettingsState["snapshots"][number]) {
-    settingsActions.applySnapshot(snap);
-    open = false;
+  function adjustIndicatorPanelHeight(delta: number) {
+    indicatorPanelHeight = clampIndicatorPanelHeight(indicatorPanelHeight + delta);
+  }
+
+  function startIndicatorResize(event: PointerEvent) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+
+    const startY = event.clientY;
+    const startHeight = indicatorPanelHeight;
+    resizingIndicators = true;
+
+    const onMove = (moveEvent: PointerEvent) => {
+      indicatorPanelHeight = clampIndicatorPanelHeight(startHeight + moveEvent.clientY - startY);
+    };
+    const endResize = () => {
+      resizingIndicators = false;
+      document.removeEventListener("pointermove", onMove, true);
+      document.removeEventListener("pointerup", endResize, true);
+      document.removeEventListener("pointercancel", endResize, true);
+      window.removeEventListener("blur", endResize);
+    };
+
+    document.addEventListener("pointermove", onMove, true);
+    document.addEventListener("pointerup", endResize, true);
+    document.addEventListener("pointercancel", endResize, true);
+    window.addEventListener("blur", endResize);
+  }
+
+  function onIndicatorResizeKeydown(event: KeyboardEvent) {
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      adjustIndicatorPanelHeight(-32);
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      adjustIndicatorPanelHeight(32);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      indicatorPanelHeight = 280;
+    } else if (event.key === "End") {
+      event.preventDefault();
+      indicatorPanelHeight = clampIndicatorPanelHeight(maxIndicatorPanelHeight());
+    }
   }
 </script>
 
@@ -71,8 +111,23 @@
               <h3 class="panel__title">분석 오버레이 / 시그널</h3>
               <p class="panel__desc">오른쪽 도크와 동일한 토글 세트입니다.</p>
             </div>
-            <div class="panel__body panel__body--indicators">
-              <IndicatorPanel {params} onParamsChange={onParamsChange} />
+            <div
+              class="indicator-frame"
+              class:is-resizing={resizingIndicators}
+              style:--indicator-panel-height={`${indicatorPanelHeight}px`}
+            >
+              <div class="panel__body panel__body--indicators">
+                <IndicatorPanel {params} onParamsChange={onParamsChange} />
+              </div>
+              <button
+                type="button"
+                class="indicator-resize-handle"
+                aria-label="지표 패널 높이 조절"
+                onpointerdown={startIndicatorResize}
+                onkeydown={onIndicatorResizeKeydown}
+              >
+                <span aria-hidden="true"></span>
+              </button>
             </div>
 
           {:else if active === "layout"}
@@ -422,53 +477,6 @@
             </div>
           {/if}
 
-          <!-- Workspace snapshots (shared across tabs, shown at bottom) -->
-          {#if active !== "backtest"}
-            <div class="snapshots">
-              <div class="snapshots__head">
-                <h4 class="snapshots__title">워크스페이스 스냅샷</h4>
-                <span class="snapshots__hint">최대 8개 보관 · 최신이 위에</span>
-              </div>
-
-              <form class="snapshots__form" onsubmit={(e) => { e.preventDefault(); takeSnapshot(); }}>
-                <input
-                  bind:value={snapshotName}
-                  type="text"
-                  class="snapshots__input"
-                  placeholder="스냅샷 이름 (빈 값이면 자동 번호)"
-                  maxlength="40"
-                />
-                <button type="submit" class="btn btn--primary">현재 상태 저장</button>
-              </form>
-
-              {#if settingsState.snapshots.length === 0}
-                <div class="snapshots__empty">저장된 스냅샷이 없습니다.</div>
-              {:else}
-                <ul class="snapshots__list" role="list">
-                  {#each settingsState.snapshots as snap (snap.id)}
-                    <li class="snapshots__row">
-                      <div class="snapshots__row-main">
-                        <strong>{snap.name}</strong>
-                        <span class="row__hint">
-                          {snap.params.symbol} · {snap.params.interval} · {fmtDate(snap.createdAt)}
-                        </span>
-                      </div>
-                      <div class="snapshots__row-actions">
-                        <button type="button" class="btn btn--ghost" onclick={() => applyAndClose(snap)}>
-                          불러오기
-                        </button>
-                        <button type="button" class="btn btn--ghost" onclick={() => settingsActions.removeSnapshot(snap.id)} aria-label="삭제" title="삭제">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M18 6 6 18M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    </li>
-                  {/each}
-                </ul>
-              {/if}
-            </div>
-          {/if}
         </div>
       {/snippet}
     </Tabs>
@@ -518,12 +526,51 @@
   }
 
   .panel__body--indicators {
-    flex: 1;
     min-height: 0;
+    height: var(--indicator-panel-height);
     border: 1px solid var(--line);
     border-radius: 10px;
     background: var(--input);
     overflow: hidden;
+  }
+
+  .indicator-frame {
+    flex: 0 0 auto;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .indicator-resize-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 16px;
+    margin: 4px 12px 0;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    cursor: ns-resize;
+    touch-action: none;
+    outline: none;
+    color: var(--muted);
+  }
+
+  .indicator-resize-handle span {
+    width: 76px;
+    height: 4px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--muted) 32%, transparent);
+    transition: background var(--dur-fast) var(--ease), width var(--dur-fast) var(--ease);
+  }
+
+  .indicator-resize-handle:hover span,
+  .indicator-resize-handle:focus-visible span,
+  .indicator-frame.is-resizing .indicator-resize-handle span {
+    width: 112px;
+    background: color-mix(in srgb, var(--accent) 58%, transparent);
   }
 
   .row {
@@ -578,22 +625,6 @@
     border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
     background: var(--accent-soft);
     color: var(--accent);
-  }
-
-  .btn--primary {
-    background: var(--accent);
-    color: var(--primary-fore);
-    border-color: var(--accent);
-  }
-
-  .btn--primary:hover {
-    background: color-mix(in srgb, var(--accent) 82%, black);
-    color: var(--primary-fore);
-  }
-
-  .btn--ghost {
-    padding: 5px 8px;
-    background: transparent;
   }
 
   .segmented {
@@ -819,100 +850,4 @@
     color: var(--accent);
   }
 
-  /* ── Snapshots section ─────────────────────── */
-  .snapshots {
-    margin-top: 12px;
-    padding: 12px;
-    border: 1px solid var(--line-soft);
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--input) 75%, transparent);
-  }
-
-  .snapshots__head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  .snapshots__title {
-    margin: 0;
-    font-size: var(--fs-sm);
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  .snapshots__hint {
-    font-size: var(--fs-xs);
-    color: var(--muted);
-  }
-
-  .snapshots__form {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 8px;
-  }
-
-  .snapshots__input {
-    flex: 1;
-    padding: 7px 10px;
-    border: 1px solid var(--line);
-    border-radius: 7px;
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
-    font-size: var(--fs-sm);
-    outline: none;
-  }
-
-  .snapshots__input:focus {
-    border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
-  }
-
-  .snapshots__empty {
-    padding: 14px;
-    text-align: center;
-    color: var(--muted);
-    font-size: var(--fs-sm);
-  }
-
-  .snapshots__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .snapshots__row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 8px 10px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: var(--surface);
-  }
-
-  .snapshots__row-main {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  .snapshots__row-main strong {
-    font-size: var(--fs-base);
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .snapshots__row-actions {
-    display: flex;
-    gap: 4px;
-    flex-shrink: 0;
-  }
 </style>

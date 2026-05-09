@@ -20,6 +20,8 @@ export interface ChartPalette {
   bg: string;
   text: string;
   grid: string;
+  border: string;
+  separatorHover: string;
   up: string;
   down: string;
 }
@@ -30,6 +32,8 @@ export function readChartPalette(): ChartPalette {
       bg: "#1a2332",
       text: "#9ca3af",
       grid: "rgba(255,255,255,0.04)",
+      border: "#252d3a",
+      separatorHover: "rgba(148,163,184,0.14)",
       up: "#f04452",
       down: "#4f8eff",
     };
@@ -43,6 +47,8 @@ export function readChartPalette(): ChartPalette {
     bg: value("--chart-bg", "#1a2332"),
     text: value("--chart-fore", "#9ca3af"),
     grid: value("--chart-grid", "rgba(255,255,255,0.04)"),
+    border: value("--chart-border", "#252d3a"),
+    separatorHover: value("--chart-separator-hover", "rgba(148,163,184,0.14)"),
     up: value("--candle-up", "#f04452"),
     down: value("--candle-down", "#4f8eff"),
   };

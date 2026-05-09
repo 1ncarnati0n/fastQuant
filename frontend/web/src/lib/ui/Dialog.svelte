@@ -9,6 +9,7 @@
     size = "md",
     padding = "lg",
     draggable = true,
+    minimalHeader = false,
     children,
   }: {
     open?: boolean;
@@ -17,6 +18,7 @@
     size?: "sm" | "md" | "lg" | "xl";
     padding?: "none" | "md" | "lg";
     draggable?: boolean;
+    minimalHeader?: boolean;
     children: Snippet;
   } = $props();
 
@@ -26,7 +28,7 @@
   let dragging = $state(false);
 
   function onHeaderPointerDown(ev: PointerEvent) {
-    if (!draggable || !contentEl) return;
+    if (minimalHeader || !draggable || !contentEl) return;
     const target = ev.target as HTMLElement | null;
     if (target?.closest("[data-no-drag]")) return;
     if (ev.button !== 0) return;
@@ -85,28 +87,31 @@
       {#if title}
         <div
           class="dlg-head"
+          class:minimal={minimalHeader}
           role="presentation"
           onpointerdown={onHeaderPointerDown}
-          ondblclick={recenter}
+          ondblclick={() => { if (!minimalHeader) recenter(); }}
         >
-          <span class="dlg-drag-grip" aria-hidden="true">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="6"  cy="7"  r="1.3"/>
-              <circle cx="6"  cy="12" r="1.3"/>
-              <circle cx="6"  cy="17" r="1.3"/>
-              <circle cx="12" cy="7"  r="1.3"/>
-              <circle cx="12" cy="12" r="1.3"/>
-              <circle cx="12" cy="17" r="1.3"/>
-            </svg>
-          </span>
+          {#if !minimalHeader}
+            <span class="dlg-drag-grip" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="6"  cy="7"  r="1.3"/>
+                <circle cx="6"  cy="12" r="1.3"/>
+                <circle cx="6"  cy="17" r="1.3"/>
+                <circle cx="12" cy="7"  r="1.3"/>
+                <circle cx="12" cy="12" r="1.3"/>
+                <circle cx="12" cy="17" r="1.3"/>
+              </svg>
+            </span>
+          {/if}
           <div class="dlg-title-block">
             <Dlg.Title class="dlg-title">{title}</Dlg.Title>
-            {#if description}
+            {#if description && !minimalHeader}
               <Dlg.Description class="dlg-desc">{description}</Dlg.Description>
             {/if}
           </div>
           <div class="dlg-actions" data-no-drag>
-            {#if draggable && pos}
+            {#if draggable && pos && !minimalHeader}
               <button
                 type="button"
                 class="dlg-iconbtn"
@@ -191,6 +196,17 @@
 
   :global(.dlg-content[data-dragging] .dlg-head) {
     cursor: grabbing;
+  }
+
+  :global(.dlg-head.minimal) {
+    padding: 12px 14px;
+    cursor: default;
+    touch-action: auto;
+  }
+
+  :global(.dlg-head.minimal .dlg-title) {
+    font-size: var(--fs-base);
+    letter-spacing: 0;
   }
 
   :global(.dlg-drag-grip) {

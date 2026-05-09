@@ -172,26 +172,10 @@
     return true;
   });
 
-  const paneEntries = $derived.by(() => {
-    const entries: Array<{ key: string; label: string; detail: string }> = [];
-    if (params?.showVolume && analysis?.candles.length) entries.push({ key: "volume", label: "거래량", detail: "하단" });
-    if (params?.showRsi && analysis?.rsi.length) entries.push({ key: "rsi", label: "RSI", detail: "하단" });
-    if (params?.macd && analysis?.macd?.data.length) entries.push({ key: "macd", label: "MACD", detail: "하단" });
-    if (params?.stochastic && analysis?.stochastic?.data.length) entries.push({ key: "stochastic", label: "Stochastic", detail: "하단" });
-    if (params?.showObv && analysis?.obv?.data.length) entries.push({ key: "showObv", label: "OBV", detail: "하단" });
-    if (params?.mfi && analysis?.mfi?.data.length) entries.push({ key: "mfi", label: "MFI", detail: "하단" });
-    if (params?.cmf && analysis?.cmf?.data.length) entries.push({ key: "cmf", label: "CMF", detail: "하단" });
-    if (params?.adx && analysis?.adx?.data.length) entries.push({ key: "adx", label: "ADX", detail: "하단" });
-    if (params?.showCvd && analysis?.cvd?.data.length) entries.push({ key: "showCvd", label: "CVD", detail: "하단" });
-    if (params?.stc && analysis?.stc?.data.length) entries.push({ key: "stc", label: "STC", detail: "하단" });
-    if (params?.showAtr && analysis?.atr?.data.length) entries.push({ key: "atr", label: "ATR", detail: "하단" });
-    return entries;
-  });
-
   const hasAnyIndicator = $derived(
     !!emaEntries || !!smaEntries || !!hmaEntries || !!bbEntry || vwapEntry !== null ||
     anchoredVwapEntry !== null || !!supertrendEntry || !!ichimokuEntry || !!donchianEntry || !!keltnerEntry ||
-    parabolicSarEntry !== null || !!autoFibEntry || !!volumeProfileEntry || paneEntries.length > 0,
+    parabolicSarEntry !== null || !!autoFibEntry || !!volumeProfileEntry,
   );
 
   // Precomputed OHLCV % changes (from previous close)
@@ -444,17 +428,6 @@
             <span class="ind-sub">활성</span>
           </div>
         {/if}
-
-        {#each paneEntries as entry (entry.key)}
-          <div class="ind-row" class:is-hidden={isHidden(entry.key)}>
-            <button type="button" class="close-x" onclick={() => deactivateIndicator(entry.key)} aria-label={`${entry.label} 비활성화`}>
-              <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </button>
-            <IndicatorVisibilityButton indicatorKey={entry.key} label={entry.label} />
-            <span class="ind-name">{entry.label}</span>
-            <span class="ind-sub">{entry.detail}</span>
-          </div>
-        {/each}
 
       </div>
     {/if}

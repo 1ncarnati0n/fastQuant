@@ -14,7 +14,7 @@
   } = $props();
 </script>
 
-<Dialog bind:open title="보조지표" description="차트에 표시할 오버레이와 오실레이터를 관리합니다." size="xl" padding="none">
+<Dialog bind:open title="보조지표" size="xl" padding="none" draggable={false} minimalHeader>
   <div class="panel-wrap">
     <IndicatorPanel
       {params}
