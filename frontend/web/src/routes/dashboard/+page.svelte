@@ -6,7 +6,6 @@
   import ChartAreaHeader from "$lib/components/dashboard/ChartAreaHeader.svelte";
   import FundamentalsMainView from "$lib/components/dashboard/FundamentalsMainView.svelte";
   import RightDock from "$lib/components/dashboard/RightDock.svelte";
-  import CommandPalette from "$lib/components/command/CommandPalette.svelte";
   import ShortcutsModal from "$lib/components/command/ShortcutsModal.svelte";
   import SettingsPanel from "$lib/components/dashboard/SettingsPanel.svelte";
   import IndicatorDialog from "$lib/components/IndicatorDialog.svelte";
@@ -43,7 +42,7 @@
         onSelectMainTab={(tab) => (dashboard.mainTab = tab)}
         onToggleTheme={dashboard.settingsActions.toggleTheme}
         onOpenSettings={() => dashboard.openSettings("indicators")}
-        onOpenPalette={() => (dashboard.paletteOpen = true)}
+        onOpenSymbolSearch={() => dashboard.openDockTab("watchlist")}
       />
 
       <div
@@ -215,7 +214,6 @@
   </div>
 </main>
 
-<CommandPalette bind:open={dashboard.paletteOpen} commands={dashboard.commands} />
 <ShortcutsModal bind:open={dashboard.shortcutsOpen} />
 <SettingsPanel
   bind:open={dashboard.settingsOpen}

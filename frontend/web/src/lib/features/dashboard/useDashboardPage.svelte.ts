@@ -4,11 +4,9 @@ import { fetchAnalysis, fetchFundamentals } from "$lib/api/client";
 import type { DrawingTool } from "$lib/chart/drawing/types";
 import { countActiveIndicators } from "$lib/chart/indicatorSpecs";
 import { createCompareRequestKey, haveSameCompareSymbols, pruneCompareData } from "$lib/features/dashboard/compareData";
-import { buildDashboardCommands } from "$lib/features/dashboard/commands";
 import { calculateDockWidth } from "$lib/features/dashboard/dockResize";
 import type { ReplaySpeed } from "$lib/features/replay/controlConfig";
 import { installShortcuts } from "$lib/features/dashboard/useShortcuts.svelte";
-import type { CommandEntry } from "$lib/components/command/CommandPalette.svelte";
 import { chart, CHART_TYPE_LABELS, COMPARE_COLORS, type ChartType, type PriceScaleMode } from "$lib/stores/chart.svelte";
 import { drawing } from "$lib/stores/drawing.svelte";
 import { replay } from "$lib/stores/replay.svelte";
@@ -80,7 +78,6 @@ export function createDashboardPageController() {
   let fundamentalsLoading = $state(false);
   let fundamentalsError = $state<string | null>(null);
   let compareData = $state<Record<string, Candle[]>>({});
-  let paletteOpen = $state(false);
   let shortcutsOpen = $state(false);
   let settingsOpen = $state(false);
   let indicatorOpen = $state(false);
@@ -173,35 +170,6 @@ export function createDashboardPageController() {
     void loadAnalysis(snap.params);
   }
 
-  const commands = $derived.by<CommandEntry[]>(() =>
-    buildDashboardCommands({
-      analysis,
-      replayEnabled: replay.enabled,
-      theme: workspace.theme,
-      watchlist: workspace.watchlist,
-      recentSymbols: workspace.recentSymbols,
-      snapshots: snapshots.items,
-      openDockTab,
-      openSettings,
-      selectSymbol,
-      setInterval,
-      toggleTheme: () => workspace.toggleTheme(),
-      toggleFullscreen: () => chart.toggleFullscreen(),
-      openShortcuts: () => {
-        shortcutsOpen = true;
-      },
-      loadAnalysis: () => {
-        void loadAnalysis();
-      },
-      toggleReplay: () => {
-        if (!analysis) return;
-        replay.toggleEnabled(analysis.candles.length);
-      },
-      captureSnapshot: () => captureSnapshot(),
-      applySnapshot,
-    }),
-  );
-
   const settingsActions: DashboardSettingsActions = {
     toggleTheme: () => workspace.toggleTheme(),
     resetDockWidth: () => workspace.resetDockWidth(),
@@ -234,9 +202,6 @@ export function createDashboardPageController() {
   function initialize() {
     void loadAnalysis();
     return installShortcuts({
-      onCommandPalette: () => {
-        paletteOpen = true;
-      },
       onShortcutsHelp: () => {
         shortcutsOpen = true;
       },
@@ -382,9 +347,6 @@ export function createDashboardPageController() {
     get indicatorCount() {
       return indicatorCount;
     },
-    get commands() {
-      return commands;
-    },
     get params() {
       return workspace.params;
     },
@@ -411,12 +373,6 @@ export function createDashboardPageController() {
     },
     set mainTab(next: "chart" | "fundamentals") {
       mainTab = next;
-    },
-    get paletteOpen() {
-      return paletteOpen;
-    },
-    set paletteOpen(next: boolean) {
-      paletteOpen = next;
     },
     get shortcutsOpen() {
       return shortcutsOpen;

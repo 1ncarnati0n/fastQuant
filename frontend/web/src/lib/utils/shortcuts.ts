@@ -11,9 +11,8 @@ export interface ShortcutHelpGroup {
 
 export const SHORTCUT_HELP_GROUPS: ShortcutHelpGroup[] = [
   {
-    title: "명령",
+    title: "도움말",
     items: [
-      { id: "cmd.palette",    keys: ["Ctrl/⌘", "J"], desc: "명령 팔레트 열기" },
       { id: "cmd.shortcuts",  keys: ["?"],            desc: "단축키 도움말" },
     ],
   },
@@ -29,7 +28,7 @@ export const SHORTCUT_HELP_GROUPS: ShortcutHelpGroup[] = [
     title: "화면",
     items: [
       { id: "view.toggle_fullscreen", keys: ["F"],   desc: "전체화면 전환" },
-      { id: "view.escape",             keys: ["Esc"], desc: "팔레트/패널 닫기" },
+      { id: "view.escape",             keys: ["Esc"], desc: "패널 닫기" },
     ],
   },
   {

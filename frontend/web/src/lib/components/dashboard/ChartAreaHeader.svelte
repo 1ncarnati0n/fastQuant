@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import type { ChartType } from "$lib/stores/chart.svelte";
   import type { DrawingTool } from "$lib/chart/drawing/types";
   import DropdownMenu, { type DropdownItem } from "$lib/ui/DropdownMenu.svelte";
@@ -57,37 +58,105 @@
     })),
   );
 
-  const minuteItems: DropdownItem[] = $derived(
-    MINUTE_INTERVALS.map((it) => ({
-      key: it.key,
-      label: it.label,
-      active: interval === it.key,
-      onSelect: () => onSelectInterval?.(it.key),
-    })),
-  );
+  let minuteMenuOpen = $state(false);
+  let minuteMenuRoot = $state<HTMLDivElement | null>(null);
+  let preferredMinuteInterval = $state(MINUTE_INTERVALS[0]?.key ?? "1m");
 
-  const minuteLabel = $derived(
-    MINUTE_INTERVALS.find((it) => it.key === interval)?.label ?? "분봉",
+  const activeMinute = $derived(MINUTE_INTERVALS.find((it) => it.key === interval) ?? null);
+  const preferredMinute = $derived(
+    MINUTE_INTERVALS.find((it) => it.key === preferredMinuteInterval) ?? MINUTE_INTERVALS[0],
   );
+  const minuteLabel = $derived(activeMinute?.label ?? preferredMinute?.label ?? "분봉");
   const isDrawing = $derived(drawingTool !== "none");
+
+  $effect(() => {
+    if (activeMinute) preferredMinuteInterval = activeMinute.key;
+  });
+
+  $effect(() => {
+    if (!browser || !minuteMenuOpen) return;
+
+    function closeOnOutside(event: PointerEvent) {
+      if (!minuteMenuRoot?.contains(event.target as Node)) minuteMenuOpen = false;
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") minuteMenuOpen = false;
+    }
+
+    document.addEventListener("pointerdown", closeOnOutside, true);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutside, true);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  });
+
+  function handleMinuteTrigger() {
+    if (!activeMinute) {
+      onSelectInterval?.(preferredMinuteInterval);
+      minuteMenuOpen = false;
+      return;
+    }
+
+    minuteMenuOpen = !minuteMenuOpen;
+  }
+
+  function selectMinuteInterval(next: string) {
+    preferredMinuteInterval = next;
+    minuteMenuOpen = false;
+    if (interval !== next) onSelectInterval?.(next);
+  }
 </script>
 
 <div class="chart-area-head">
   <div class="left-controls">
     <div class="intervals" role="group" aria-label="차트 인터벌">
-      <DropdownMenu
-        items={minuteItems}
-        triggerAriaLabel="분봉 선택"
-        triggerTitle="분봉 선택"
-        contentClass="minute-menu"
-      >
-        {#snippet trigger({ isOpen })}
-          <span class="iv iv--dropdown" class:active={minuteLabel !== "분봉"} class:open={isOpen}>
-            {minuteLabel}
-            <svg class="caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9" /></svg>
-          </span>
-        {/snippet}
-      </DropdownMenu>
+      <div class="minute-picker" bind:this={minuteMenuRoot}>
+        <button
+          type="button"
+          class="iv iv--dropdown"
+          class:active={Boolean(activeMinute)}
+          class:open={minuteMenuOpen}
+          aria-label="분봉 선택"
+          aria-haspopup="menu"
+          aria-expanded={minuteMenuOpen}
+          title={activeMinute ? "분봉 변경" : `${minuteLabel}으로 전환`}
+          onclick={handleMinuteTrigger}
+        >
+          {minuteLabel}
+          <svg class="caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+        </button>
+        {#if minuteMenuOpen}
+          <div class="minute-menu" role="menu" aria-label="분봉 목록">
+            {#each MINUTE_INTERVALS as item}
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={interval === item.key}
+                class="minute-option"
+                class:is-active={interval === item.key}
+                onclick={() => selectMinuteInterval(item.key)}
+              >
+                <span>{item.label}</span>
+                {#if interval === item.key}
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    aria-hidden="true"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
       {#each PERIOD_INTERVALS as iv}
         <button
           type="button"
@@ -242,7 +311,16 @@
     border-color: transparent;
   }
 
-  :global(.minute-menu) {
+  .minute-picker {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .minute-menu {
+    position: absolute;
+    z-index: 60;
+    top: calc(100% + 6px);
+    left: 0;
     min-width: 116px;
     padding: 4px;
     border: 1px solid var(--line);
@@ -251,22 +329,32 @@
     box-shadow: var(--shadow-lg);
   }
 
-  :global(.minute-menu .dd-item) {
+  .minute-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
     min-height: 32px;
     padding: 0 12px;
+    border: 0;
     border-radius: 6px;
+    background: transparent;
     color: var(--text);
-    font-size: var(--fs-base);
+    font: inherit;
+    font-size: var(--fs-sm);
     font-weight: 700;
     letter-spacing: 0;
+    text-align: left;
+    cursor: pointer;
   }
 
-  :global(.minute-menu .dd-item[data-highlighted]),
-  :global(.minute-menu .dd-item:hover) {
+  .minute-option:hover,
+  .minute-option:focus-visible {
     background: var(--muted-bg);
+    outline: none;
   }
 
-  :global(.minute-menu .dd-item.is-active) {
+  .minute-option.is-active {
     color: var(--primary);
     background: var(--primary-soft);
   }

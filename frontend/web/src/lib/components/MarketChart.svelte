@@ -88,7 +88,7 @@
   let ohlcvMap = new Map<number, OhlcvValue>();
 
   let lib: typeof import("lightweight-charts") | null = null;
-  const LOWER_PANE_HEIGHT_SCALE = 0.5;
+  const LOWER_PANE_HEIGHT_SCALE = 0.4;
   const MIN_LOWER_PANE_HEIGHT = 72;
   const MIN_MAIN_PANE_HEIGHT = 240;
 

@@ -15,7 +15,7 @@
     onSelectMainTab,
     onToggleTheme,
     onOpenSettings,
-    onOpenPalette,
+    onOpenSymbolSearch,
   }: {
     analysis?: AnalysisResponse | null;
     fundamentals?: FundamentalsResponse | null;
@@ -27,7 +27,7 @@
     onSelectMainTab?: (tab: "chart" | "fundamentals") => void;
     onToggleTheme?: () => void;
     onOpenSettings?: () => void;
-    onOpenPalette?: () => void;
+    onOpenSymbolSearch?: () => void;
   } = $props();
 
   const MARKET_META: Record<MarketType, { label: string; color: string }> = {
@@ -110,8 +110,8 @@
     <button
       type="button"
       class="symbol-block"
-      onclick={onOpenPalette}
-      title="심볼 검색 (⌘J)"
+      onclick={onOpenSymbolSearch}
+      title="심볼 검색"
       aria-label="심볼 검색"
     >
       <span class="symbol-logo">{(symbolName || "FQ").slice(0, 2)}</span>

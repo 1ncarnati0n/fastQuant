@@ -6,7 +6,6 @@ import {
 } from "$lib/utils/shortcuts";
 
 export interface ShortcutHandlers {
-  onCommandPalette: () => void;
   onShortcutsHelp: () => void;
   onOpenWatchlist: () => void;
   onOpenSettings: () => void;
@@ -22,13 +21,6 @@ export function installShortcuts(handlers: ShortcutHandlers): () => void {
 
   function handle(e: KeyboardEvent) {
     if (isEditableKeyboardTarget(e.target)) return;
-
-    // Command palette: Cmd/Ctrl+J. Allowed even inside dialogs (closes + reopens palette).
-    if (isModKey(e, "j")) {
-      e.preventDefault();
-      handlers.onCommandPalette();
-      return;
-    }
 
     // While any dialog is open, ignore non-Esc shortcuts (dialog handles Esc itself).
     if (isActiveDialogLayer(e.target)) return;
