@@ -116,19 +116,12 @@
       <aside class="sidebar">
         <RightDock
           activeTab={dashboard.dockTab}
-          params={dashboard.params}
           selectedSymbol={dashboard.params.symbol}
           selectedMarket={dashboard.params.market}
           interval={dashboard.params.interval}
-          fundamentals={dashboard.fundamentals}
-          fundamentalsLoading={dashboard.fundamentalsLoading}
-          fundamentalsError={dashboard.fundamentalsError}
           settingsState={dashboard.settingsState}
           settingsActions={dashboard.settingsActions}
-          onTabChange={dashboard.openDockTab}
-          onClose={() => dashboard.toggleDockTab(dashboard.dockTab)}
           onSelectSymbol={dashboard.selectSymbol}
-          onParamsChange={dashboard.updateParams}
           onOpenSettings={() => dashboard.openSettings("appearance")}
         />
       </aside>
@@ -146,19 +139,12 @@
           <RightDock
             variant="sheet"
             activeTab={dashboard.dockTab}
-            params={dashboard.params}
             selectedSymbol={dashboard.params.symbol}
             selectedMarket={dashboard.params.market}
             interval={dashboard.params.interval}
-            fundamentals={dashboard.fundamentals}
-            fundamentalsLoading={dashboard.fundamentalsLoading}
-            fundamentalsError={dashboard.fundamentalsError}
             settingsState={dashboard.settingsState}
             settingsActions={dashboard.settingsActions}
-            onTabChange={dashboard.openDockTab}
-            onClose={() => dashboard.toggleDockTab(dashboard.dockTab)}
             onSelectSymbol={dashboard.selectSymbol}
-            onParamsChange={dashboard.updateParams}
             onOpenSettings={() => dashboard.openSettings("appearance")}
           />
         </div>
@@ -187,27 +173,6 @@
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-9.33-8.2C.36 8.96 2.4 4.5 6.7 4.5c2.1 0 3.47 1.02 4.3 2.07.83-1.05 2.2-2.07 4.3-2.07 4.3 0 6.34 4.46 4.03 8.3C19 16.65 12 21 12 21Z"/></svg>
           <span>관심종목</span>
-        </button>
-        <button
-          type="button"
-          class="rail-btn"
-          class:active={dashboard.dockOpen && dashboard.dockTab === "fundamentals"}
-          onclick={() => dashboard.toggleDockTab("fundamentals")}
-          title="펀더멘털"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-2.34-5.66L15 9h7V2l-2.92 2.92A9.97 9.97 0 0 0 12 2Zm1 5h-2v6l5 3 1-1.73-4-2.27Z"/></svg>
-          <span>펀더멘털</span>
-        </button>
-        <span class="rail-sep"></span>
-        <button
-          type="button"
-          class="rail-btn"
-          class:active={dashboard.dockOpen && dashboard.dockTab === "strategy"}
-          onclick={() => dashboard.toggleDockTab("strategy")}
-          title="전략"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
-          <span>전략</span>
         </button>
       </aside>
     {/if}
@@ -341,7 +306,8 @@
     left: 14px;
     right: auto;
     z-index: 12;
-    width: min(720px, calc(100% - 28px));
+    width: fit-content;
+    max-width: calc(100% - 28px);
     max-height: min(34%, 220px);
     overflow: auto;
     padding: 0;
@@ -443,12 +409,6 @@
     color: var(--primary);
   }
 
-  .rail-sep {
-    width: 32px;
-    height: 1px;
-    background: var(--border);
-  }
-
   .dock-resizer {
     position: relative;
     width: 14px;
@@ -528,10 +488,6 @@
       gap: 3px;
       border-radius: 8px;
       font-size: var(--fs-2xs);
-    }
-
-    .rail-sep {
-      display: none;
     }
 
     .mobile-dock {

@@ -39,6 +39,7 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
     items: [
       { symbol: "SPY",  label: "S&P 500",       market: "usStock" },
       { symbol: "QQQ",  label: "Nasdaq 100",    market: "usStock" },
+      { symbol: "AGQ",  label: "ProShares Ultra Silver", market: "usStock" },
       { symbol: "IWM",  label: "Russell 2000",  market: "usStock" },
       { symbol: "DIA",  label: "Dow Jones",     market: "usStock" },
       { symbol: "VOO",  label: "Vanguard S&P",  market: "usStock" },

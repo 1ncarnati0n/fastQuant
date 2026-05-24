@@ -167,7 +167,7 @@ export function createDashboardPageController() {
     chart.setChartType(snap.chartType);
     workspace.setDockTab(snap.dockTab);
     workspace.setParams(snap.params);
-    void loadAnalysis(snap.params);
+    void loadAnalysis(workspace.params);
   }
 
   const settingsActions: DashboardSettingsActions = {
@@ -270,7 +270,7 @@ export function createDashboardPageController() {
 
   function updateParams(next: AnalysisParams) {
     workspace.setParams(next);
-    void loadAnalysis(next);
+    void loadAnalysis(workspace.params);
   }
 
   function openDockTab(tab: DockTab) {

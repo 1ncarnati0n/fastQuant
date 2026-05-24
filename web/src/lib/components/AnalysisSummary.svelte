@@ -440,7 +440,7 @@
         aria-expanded={!collapsed}
         onclick={() => (collapsed = !collapsed)}
       >
-        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" class:flipped={collapsed}>
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" class:flipped={!collapsed}>
           <path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
         </svg>
       </button>
@@ -487,9 +487,14 @@
   /* OHLCV row */
   .ohlcv-row {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 10px 14px;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
   }
@@ -497,7 +502,9 @@
   .ohlc {
     display: inline-flex;
     align-items: baseline;
+    flex: 0 0 auto;
     gap: 5px;
+    white-space: nowrap;
   }
 
   .ohlc-key {

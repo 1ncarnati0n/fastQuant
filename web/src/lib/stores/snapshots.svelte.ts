@@ -1,6 +1,6 @@
 import { browser } from "$app/environment";
 import type { AnalysisParams } from "$lib/api/types";
-import type { DockTab, Theme, WatchlistItem } from "$lib/stores/workspace.svelte";
+import { normalizeDockTab, type DockTab, type Theme, type WatchlistItem } from "$lib/stores/workspace.svelte";
 import type { ChartType } from "$lib/stores/chart.svelte";
 
 const STORAGE_KEY = "fastquant-snapshots-v1";
@@ -23,7 +23,12 @@ function load(): WorkspaceSnapshot[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as WorkspaceSnapshot[]) : [];
+    return Array.isArray(parsed)
+      ? (parsed as WorkspaceSnapshot[]).map((snapshot) => ({
+          ...snapshot,
+          dockTab: normalizeDockTab(snapshot.dockTab),
+        }))
+      : [];
   } catch {
     return [];
   }

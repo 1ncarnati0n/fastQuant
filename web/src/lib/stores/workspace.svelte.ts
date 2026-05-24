@@ -11,7 +11,12 @@ const DEFAULT_DOCK_WIDTH = 420;
 const MIN_DOCK_WIDTH = 340;
 const MAX_DOCK_WIDTH = 620;
 
-export type DockTab = "watchlist" | "indicators" | "strategy" | "fundamentals" | "settings";
+export type DockTab = "watchlist" | "settings";
+const DOCK_TABS: readonly DockTab[] = ["watchlist", "settings"];
+
+export function normalizeDockTab(value: unknown): DockTab {
+  return DOCK_TABS.includes(value as DockTab) ? (value as DockTab) : "watchlist";
+}
 
 export interface RecentSymbol {
   symbol: string;
@@ -80,7 +85,7 @@ function loadSaved(): Saved {
       : DEFAULT_WATCHLIST;
     return {
       params: sanitizeParams(parsed.params),
-      dockTab: (["watchlist", "indicators", "strategy", "fundamentals", "settings"] as DockTab[]).includes(parsed.dockTab as DockTab) ? (parsed.dockTab as DockTab) : "watchlist",
+      dockTab: normalizeDockTab(parsed.dockTab),
       recentSymbols,
       watchlist: saved.legacy ? mergeDefaultWatchlist(watchlist) : watchlist,
       theme: parsed.theme === "dark" ? "dark" : "light",
@@ -163,10 +168,7 @@ function sanitizeParams(raw: unknown): AnalysisParams {
         : defaultAnalysisParams.showParabolicSar,
     smaPeriods: Array.isArray(r.smaPeriods) ? r.smaPeriods : defaultAnalysisParams.smaPeriods,
     emaPeriods: Array.isArray(r.emaPeriods) ? r.emaPeriods : defaultAnalysisParams.emaPeriods,
-    signalStrategies:
-      r.signalStrategies && typeof r.signalStrategies === "object"
-        ? r.signalStrategies
-        : defaultAnalysisParams.signalStrategies,
+    signalStrategies: {},
   };
 }
 
@@ -301,7 +303,7 @@ function createWorkspace() {
       params = { ...params, ...patch };
     },
     setParams(next: AnalysisParams) {
-      params = next;
+      params = sanitizeParams(next);
     },
     selectSymbol(symbol: string, market: MarketType, label?: string) {
       params = { ...params, symbol, market };

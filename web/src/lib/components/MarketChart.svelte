@@ -13,7 +13,6 @@
   import { addIchimoku } from "$lib/chart/overlays/ichimoku";
   import { addAutoFib } from "$lib/chart/overlays/autofib";
   import { addVwap, addAnchoredVwap } from "$lib/chart/overlays/vwap";
-  import { addSignalsOverlay } from "$lib/chart/overlays/signals";
   import type { OverlayHandle } from "$lib/chart/overlays/types";
   import { PaneFrame } from "$lib/chart/panes/frame";
   import type { PaneHandle } from "$lib/chart/panes/frame";
@@ -639,7 +638,6 @@
     overlays.forEach((o) => o.remove());
     overlays = [];
     const a = analysis;
-    const hasSignalStrategy = Object.values(workspace.params.signalStrategies ?? {}).some(Boolean);
     // Some overlays expect a Candlestick-shaped series for price markers/lines.
     // Line/Area mains still accept price lines since they're attached to the chart itself.
     const anchorSeries = mainSeries as ISeriesApi<"Candlestick">;
@@ -656,7 +654,6 @@
     if (workspace.params.showVwap && !isChartHidden("vwap") && a.vwap?.data.length) overlays.push(addVwap(chart, a.vwap.data));
     if (workspace.params.anchoredVwap && !isChartHidden("anchoredVwap") && a.anchoredVwap?.data.length) overlays.push(addAnchoredVwap(chart, a.anchoredVwap.data));
     if (workspace.params.autoFib && !isChartHidden("autoFib") && a.autoFib) overlays.push(addAutoFib(chart, a.autoFib, anchorSeries));
-    if (hasSignalStrategy && a.signals.length > 0) overlays.push(addSignalsOverlay(chart, a.signals, anchorSeries));
   }
 
   function isChartHidden(key: string): boolean {

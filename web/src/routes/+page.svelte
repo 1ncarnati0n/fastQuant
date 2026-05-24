@@ -7,12 +7,11 @@
     <p class="eyebrow">fastQuant migration</p>
     <h1>SvelteKit UI, FastAPI business backend</h1>
     <p>
-      Dashboard, watchlist, and strategy screens will move here while market data,
-      indicators, signals, and backtests move into FastAPI.
+      Dashboard and watchlist screens run here while market data and indicators
+      are provided through FastAPI.
     </p>
     <nav>
       <a href="/dashboard">Dashboard</a>
-      <a href="/strategy">Strategy Lab</a>
     </nav>
   </section>
 
@@ -72,4 +71,3 @@
     }
   }
 </style>
-

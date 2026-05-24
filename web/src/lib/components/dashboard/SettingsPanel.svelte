@@ -458,23 +458,6 @@
               {/each}
             </div>
 
-          {:else if active === "backtest"}
-            <div class="panel__head">
-              <h3 class="panel__title">백테스트</h3>
-              <p class="panel__desc">전략 A / B / ORB는 Strategy Lab에서 실행합니다.</p>
-            </div>
-            <div class="panel__body panel__body--padded">
-              <a class="strategy-link" href="/strategy">
-                <div>
-                  <strong>Strategy Lab 열기</strong>
-                  <span class="row__hint">세 전략의 end-to-end UI</span>
-                </div>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path d="M5 12h14" />
-                  <path d="m13 6 6 6-6 6" />
-                </svg>
-              </a>
-            </div>
           {/if}
 
         </div>
@@ -830,24 +813,5 @@
   }
 
   .plus { color: var(--muted); font-size: var(--fs-xs); }
-
-  .strategy-link {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: var(--input);
-    color: var(--text);
-    text-decoration: none;
-    transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
-  }
-
-  .strategy-link:hover {
-    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
 
 </style>

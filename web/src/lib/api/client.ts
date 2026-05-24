@@ -5,17 +5,6 @@ import type {
   FundamentalsParams,
   FundamentalsResponse,
   HealthResponse,
-  MacdBbSignal,
-  MultiSymbolCandlesParams,
-  MultiSymbolCandlesResponse,
-  OrbScanParams,
-  OrbScanResponse,
-  PairTradingParams,
-  PairTradingResult,
-  PremarketSnapshot,
-  PremarketSnapshotParams,
-  StrategyABacktestParams,
-  StrategyABacktestResult,
   SymbolSearchResult,
   WatchlistSnapshot,
   WatchlistSnapshotParams,
@@ -106,62 +95,14 @@ export function searchSymbols(
   return request<SymbolSearchResult[]>(`/api/search/symbols?${p.toString()}`);
 }
 
-export function scanMacdBbSignals(params: AnalysisParams): Promise<MacdBbSignal[]> {
-  return request<MacdBbSignal[]>("/api/strategy/macd-bb-scan", {
-    method: "POST",
-    body: JSON.stringify(toServerAnalysisParams(params)),
-  });
-}
-
 function toServerAnalysisParams(params: AnalysisParams): AnalysisParams {
   const payload = { ...params } as Record<string, unknown>;
   for (const key of CLIENT_ONLY_ANALYSIS_KEYS) delete payload[key];
   return payload as unknown as AnalysisParams;
 }
 
-export function runStrategyABacktest(
-  params: StrategyABacktestParams,
-): Promise<StrategyABacktestResult> {
-  return request<StrategyABacktestResult>("/api/strategy/strategy-a/backtest", {
-    method: "POST",
-    body: JSON.stringify(params),
-  });
-}
-
-export function analyzePairTrading(params: PairTradingParams): Promise<PairTradingResult> {
-  return request<PairTradingResult>("/api/strategy/pair-trading", {
-    method: "POST",
-    body: JSON.stringify(params),
-  });
-}
-
-export function scanOrb(params: OrbScanParams): Promise<OrbScanResponse> {
-  return request<OrbScanResponse>("/api/strategy/orb-scan", {
-    method: "POST",
-    body: JSON.stringify(params),
-  });
-}
-
 export function fetchFundamentals(params: FundamentalsParams): Promise<FundamentalsResponse> {
   return request<FundamentalsResponse>("/api/fundamentals", {
-    method: "POST",
-    body: JSON.stringify(params),
-  });
-}
-
-export function fetchPremarketSnapshots(
-  params: PremarketSnapshotParams,
-): Promise<PremarketSnapshot[]> {
-  return request<PremarketSnapshot[]>("/api/strategy/premarket-snapshots", {
-    method: "POST",
-    body: JSON.stringify(params),
-  });
-}
-
-export function fetchMultiSymbolCandles(
-  params: MultiSymbolCandlesParams,
-): Promise<MultiSymbolCandlesResponse> {
-  return request<MultiSymbolCandlesResponse>("/api/strategy/multi-symbol-candles", {
     method: "POST",
     body: JSON.stringify(params),
   });

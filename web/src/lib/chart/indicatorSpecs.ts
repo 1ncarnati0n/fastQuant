@@ -334,7 +334,5 @@ export function countActiveIndicators(params: Record<string, unknown>): number {
       }
     }
   }
-  const sigs = (params["signalStrategies"] ?? {}) as Record<string, unknown>;
-  for (const v of Object.values(sigs)) if (v) n++;
   return n;
 }
