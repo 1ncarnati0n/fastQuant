@@ -189,27 +189,57 @@ async def search_symbols(
     if response.status_code >= 400:
         raise RuntimeError(f"Yahoo Search API error ({response.status_code}): {response.text}")
 
-    quotes = response.json().get("quotes") or []
+    return parse_search_response(response.json(), market_filter)
+
+
+def parse_search_response(
+    payload: dict[str, Any], market_filter: MarketType | None = None
+) -> list[SymbolSearchResult]:
+    quotes = payload.get("quotes") or []
+    if not isinstance(quotes, list):
+        return []
+
     results: list[SymbolSearchResult] = []
+    seen: set[tuple[str, MarketType]] = set()
     for quote in quotes:
-        symbol = str(quote.get("symbol") or "")
+        if not isinstance(quote, dict):
+            continue
+        symbol = str(quote.get("symbol") or "").strip().upper()
         if not symbol:
             continue
         label = quote.get("shortname") or quote.get("longname") or symbol
         exchange = quote.get("exchDisp") or ""
         quote_type = quote.get("quoteType") or ""
         market = classify_market(symbol, exchange, quote_type)
-        if market in ("crypto", "forex"):
+        symbol = normalize_search_symbol(symbol, market)
+        if symbol is None:
             continue
         if market_filter is not None and market_filter != market:
             continue
+        key = (symbol, market)
+        if key in seen:
+            continue
+        seen.add(key)
         results.append(
             SymbolSearchResult(
-                symbol=symbol, label=str(label), market=market, exchange=str(exchange)
+                symbol=symbol,
+                label=str(label),
+                market=market,
+                exchange="Binance" if market == "crypto" else str(exchange),
             )
         )
 
     return results
+
+
+def normalize_search_symbol(symbol: str, market: MarketType) -> str | None:
+    if market != "crypto":
+        return symbol
+    if symbol.endswith("-USD"):
+        return f"{symbol.removesuffix('-USD')}USDT"
+    if symbol.endswith("USDT"):
+        return symbol
+    return None
 
 
 def parse_chart_response(root: dict[str, Any]) -> list[Candle]:
