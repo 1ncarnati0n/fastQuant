@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -12,6 +13,8 @@ from app.models.market import (
 
 YAHOO_BASE_URL = "https://query1.finance.yahoo.com"
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+MONTHLY_WINDOW_BARS = 120
+MONTHLY_WINDOW_YEARS = 10
 
 # ── Crumb cache ──────────────────────────────────────────────────────────────
 # Yahoo Finance requires a session crumb + cookies for /v10 quoteSummary.
@@ -50,20 +53,60 @@ async def fetch_klines(symbol: str, interval: str, limit: int) -> list[Candle]:
         headers={"User-Agent": USER_AGENT},
         timeout=20,
     ) as client:
+        if interval == "1M" and limit > MONTHLY_WINDOW_BARS:
+            candles = await fetch_monthly_history(client, symbol)
+        else:
+            response = await client.get(
+                f"/v8/finance/chart/{symbol}",
+                params={
+                    "interval": yahoo_interval,
+                    "range": range_value,
+                    "includePrePost": include_pre_post,
+                },
+            )
+            candles = candles_from_response(response)
+    if interval == "1M":
+        candles = normalize_monthly_candles(candles)
+    return candles[-limit:] if limit > 0 else candles
+
+
+async def fetch_monthly_history(client: httpx.AsyncClient, symbol: str) -> list[Candle]:
+    discovery = await client.get(
+        f"/v8/finance/chart/{symbol}",
+        params={"interval": "1mo", "range": "max", "includePrePost": "false"},
+    )
+    coarse_candles = candles_from_response(discovery)
+    if not coarse_candles:
+        return []
+
+    first = datetime.fromtimestamp(coarse_candles[0].time, UTC)
+    window_start = datetime(max(1900, first.year - 1), 1, 1, tzinfo=UTC)
+    history_end = datetime.now(UTC) + timedelta(days=1)
+    candles: list[Candle] = []
+    while window_start < history_end:
+        window_end = min(replace_year(window_start, window_start.year + MONTHLY_WINDOW_YEARS), history_end)
         response = await client.get(
             f"/v8/finance/chart/{symbol}",
             params={
-                "interval": yahoo_interval,
-                "range": range_value,
-                "includePrePost": include_pre_post,
+                "interval": "1mo",
+                "period1": int(window_start.timestamp()),
+                "period2": int(window_end.timestamp()),
+                "includePrePost": "false",
             },
         )
+        candles.extend(candles_from_response(response))
+        window_start = window_end
+    return normalize_monthly_candles(sorted(candles, key=lambda candle: candle.time))
 
+
+def candles_from_response(response: httpx.Response) -> list[Candle]:
     if response.status_code >= 400:
         raise RuntimeError(f"Yahoo Finance API error ({response.status_code}): {response.text}")
+    return parse_chart_response(response.json())
 
-    candles = parse_chart_response(response.json())
-    return candles[-limit:] if limit > 0 else candles
+
+def replace_year(value: datetime, year: int) -> datetime:
+    return value.replace(year=year)
 
 
 async def fetch_fundamentals(symbol: str, market: MarketType) -> FundamentalsResponse:
@@ -315,9 +358,10 @@ def interval_to_range(interval: str) -> str:
         "15m": "60d",
         "30m": "60d",
         "1h": "2y",
-        "1d": "2y",
+        "1d": "5y",
         "1w": "10y",
-        "1M": "max",
+        # Yahoo condenses `1mo + max` into quarterly bars. Keep native monthly cadence.
+        "1M": "10y",
     }.get(interval, "2y")
 
 
@@ -333,6 +377,29 @@ def map_interval(interval: str) -> str:
         "1w": "1wk",
         "1M": "1mo",
     }.get(interval, "1d")
+
+
+def normalize_monthly_candles(candles: list[Candle]) -> list[Candle]:
+    output: list[Candle] = []
+    for candle in candles:
+        month = datetime.fromtimestamp(candle.time, UTC).strftime("%Y-%m")
+        if not output:
+            output.append(candle)
+            continue
+        previous = output[-1]
+        previous_month = datetime.fromtimestamp(previous.time, UTC).strftime("%Y-%m")
+        if previous_month != month:
+            output.append(candle)
+            continue
+        output[-1] = Candle(
+            time=previous.time,
+            open=previous.open,
+            high=max(previous.high, candle.high),
+            low=min(previous.low, candle.low),
+            close=candle.close,
+            volume=max(previous.volume, candle.volume),
+        )
+    return output
 
 
 def first_number(root: dict[str, Any], paths: list[list[str | int]]) -> float | None:

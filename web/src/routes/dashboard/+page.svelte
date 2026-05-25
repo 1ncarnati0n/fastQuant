@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import AnalysisSummary from "$lib/components/AnalysisSummary.svelte";
   import MarketChart from "$lib/components/MarketChart.svelte";
+  import ApiStatus from "$lib/components/ApiStatus.svelte";
   import AppBar from "$lib/components/dashboard/AppBar.svelte";
   import ChartAreaHeader from "$lib/components/dashboard/ChartAreaHeader.svelte";
   import FundamentalsMainView from "$lib/components/dashboard/FundamentalsMainView.svelte";
@@ -38,10 +39,7 @@
         market={dashboard.params.market}
         loading={dashboard.loading}
         activeMainTab={dashboard.mainTab}
-        theme={dashboard.theme}
         onSelectMainTab={(tab) => (dashboard.mainTab = tab)}
-        onToggleTheme={dashboard.settingsActions.toggleTheme}
-        onOpenSettings={() => dashboard.openSettings("indicators")}
         onOpenSymbolSearch={() => dashboard.openDockTab("watchlist")}
       />
 
@@ -154,26 +152,60 @@
     <!-- ── Quick rail (rightmost, always-on nav) ── -->
     {#if !dashboard.isFullscreen}
       <aside class="quick-rail top-rail" aria-label="빠른 메뉴">
-        <button
-          type="button"
-          class="rail-btn"
-          class:active={dashboard.dockOpen && dashboard.dockTab === "settings"}
-          onclick={() => dashboard.toggleDockTab("settings")}
-          title="설정"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 18h16v2H4zM5 10h3v6H5zm5-4h3v10h-3zm5 6h3v4h-3z"/></svg>
-          <span>설정</span>
-        </button>
-        <button
-          type="button"
-          class="rail-btn"
-          class:active={dashboard.dockOpen && dashboard.dockTab === "watchlist"}
-          onclick={() => dashboard.toggleDockTab("watchlist")}
-          title="관심종목"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-9.33-8.2C.36 8.96 2.4 4.5 6.7 4.5c2.1 0 3.47 1.02 4.3 2.07.83-1.05 2.2-2.07 4.3-2.07 4.3 0 6.34 4.46 4.03 8.3C19 16.65 12 21 12 21Z"/></svg>
-          <span>관심종목</span>
-        </button>
+        <div class="rail-tools">
+          <div class="rail-status">
+            <ApiStatus compact rail />
+          </div>
+          <button
+            type="button"
+            class="rail-tool-btn"
+            onclick={dashboard.settingsActions.toggleTheme}
+            title={dashboard.theme === "dark" ? "라이트 모드" : "다크 모드"}
+            aria-label={dashboard.theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
+          >
+            <span class="rail-tool-icon">
+              {#if dashboard.theme === "dark"}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                </svg>
+              {:else}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+                </svg>
+              {/if}
+            </span>
+          </button>
+          <button
+            type="button"
+            class="rail-tool-btn"
+            class:active={dashboard.dockOpen && dashboard.dockTab === "settings"}
+            onclick={() => dashboard.toggleDockTab("settings")}
+            title="설정"
+            aria-label="설정 열기"
+          >
+            <span class="rail-tool-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/>
+                <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2.05 2.05 0 1 1-2.9 2.9l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2.05 2.05 0 1 1-4.1 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2.05 2.05 0 1 1-2.9-2.9l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2.05 2.05 0 1 1 0-4.1h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2.05 2.05 0 1 1 2.9-2.9l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2.05 2.05 0 1 1 4.1 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2.05 2.05 0 1 1 2.9 2.9l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2.05 2.05 0 1 1 0 4.1h-.09a1.7 1.7 0 0 0-1.51.9Z"/>
+              </svg>
+            </span>
+          </button>
+        </div>
+        <div class="rail-primary">
+          <button
+            type="button"
+            class="rail-btn"
+            class:active={dashboard.dockOpen && dashboard.dockTab === "watchlist"}
+            onclick={() => dashboard.toggleDockTab("watchlist")}
+            title="종목"
+          >
+            <span class="rail-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-9.33-8.2C.36 8.96 2.4 4.5 6.7 4.5c2.1 0 3.47 1.02 4.3 2.07.83-1.05 2.2-2.07 4.3-2.07 4.3 0 6.34 4.46 4.03 8.3C19 16.65 12 21 12 21Z"/></svg>
+            </span>
+            <span>종목</span>
+          </button>
+        </div>
       </aside>
     {/if}
   </div>
@@ -359,21 +391,73 @@
     width: var(--dock-width);
     flex-shrink: 0;
     overflow: hidden;
-    padding: 0 10px 12px 10px;
+    padding: 0;
   }
 
   /* ── Quick rail (rightmost flex sibling) ── */
   .quick-rail {
-    width: 64px;
+    width: 76px;
     flex-shrink: 0;
     height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 12px 0 0;
+    gap: 4px;
+    padding: 18px 8px 12px;
     border-left: 1px solid var(--border);
-    background: var(--muted-bg);
+    background: var(--card);
+  }
+
+  .rail-status {
+    width: 100%;
+  }
+
+  .rail-tools {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 2px;
+  }
+
+  .rail-tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted-fore);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease),
+      background var(--dur-fast) var(--ease);
+  }
+
+  .rail-tool-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  .rail-tool-btn:hover,
+  .rail-tool-btn.active {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--muted-bg) 90%, var(--border));
+  }
+
+  .rail-primary {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .mobile-dock {
@@ -384,69 +468,93 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 2px;
     width: 100%;
-    min-height: 58px;
+    min-height: 62px;
+    padding: 2px 0;
     border: 0;
     background: transparent;
     color: var(--muted-fore);
     cursor: pointer;
-    font-size: var(--fs-xs);
+    font-size: var(--fs-sm);
     font-weight: 700;
+    letter-spacing: 0;
   }
 
-  .rail-btn svg {
+  .rail-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     color: var(--muted-fore);
+    transition:
+      color var(--dur-fast) var(--ease),
+      background var(--dur-fast) var(--ease);
   }
 
-  .rail-btn:hover,
+  .rail-btn:hover {
+    color: var(--foreground);
+  }
+
+  .rail-btn:hover .rail-icon {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--muted-bg) 70%, transparent);
+  }
+
   .rail-btn.active {
     color: var(--foreground);
-    background: color-mix(in srgb, var(--muted-bg) 60%, var(--border));
   }
 
-  .rail-btn.active svg {
-    color: var(--primary);
+  .rail-btn.active .rail-icon {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--muted-bg) 90%, var(--border));
   }
 
   .dock-resizer {
     position: relative;
-    width: 14px;
+    width: 16px;
+    flex-shrink: 0;
     border: 0;
     padding: 0;
-    background: transparent;
+    background: color-mix(in srgb, var(--muted-bg) 60%, var(--card));
     cursor: col-resize;
-  }
-
-  .dock-resizer::before,
-  .dock-resizer::after {
-    content: "";
-    position: absolute;
-    opacity: 0;
-    transition: opacity var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+    transition: background var(--dur-fast) var(--ease);
   }
 
   .dock-resizer::before {
-    top: 12px;
-    bottom: 12px;
+    content: "";
+    position: absolute;
+    transition:
+      opacity var(--dur-fast) var(--ease),
+      background var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
+    top: 0;
+    bottom: 0;
     left: 50%;
-    width: 2px;
+    width: 1px;
     transform: translateX(-50%);
-    border-radius: 999px;
-    background: var(--primary);
-    box-shadow: 0 0 14px color-mix(in srgb, var(--primary) 48%, transparent);
+    background: color-mix(in srgb, var(--muted-fore) 22%, var(--border));
+    opacity: 0;
   }
 
-  .dock-resizer::after {
-    inset: 0;
-    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--primary) 13%, transparent), transparent);
+  .dock-resizer:hover,
+  .dock-resizer.active,
+  .dock-resizer:focus-visible {
+    background: color-mix(in srgb, var(--muted-bg) 85%, var(--card));
   }
 
   .dock-resizer:hover::before,
-  .dock-resizer:hover::after,
   .dock-resizer.active::before,
-  .dock-resizer.active::after {
+  .dock-resizer:focus-visible::before {
+    background: color-mix(in srgb, var(--muted-fore) 54%, var(--border));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--muted-fore) 8%, transparent);
     opacity: 1;
+  }
+
+  .dock-resizer:focus-visible {
+    outline: none;
   }
 
   .fullscreen-body .chart-area {
@@ -481,13 +589,49 @@
       box-shadow: 0 -10px 24px rgba(25, 31, 40, 0.14);
     }
 
+    .rail-status {
+      display: none;
+    }
+
+    .rail-tools,
+    .rail-primary {
+      display: contents;
+    }
+
+    .rail-tool-btn {
+      flex: 0 0 46px;
+      width: 46px;
+      height: 46px;
+    }
+
+    .rail-tool-icon {
+      width: 100%;
+      height: 100%;
+    }
+
+    .rail-tool-icon :global(svg) {
+      width: 16px;
+      height: 16px;
+    }
+
     .rail-btn {
       flex: 1;
       width: auto;
       min-height: 0;
-      gap: 3px;
+      gap: 1px;
       border-radius: 8px;
       font-size: var(--fs-2xs);
+    }
+
+    .rail-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+    }
+
+    .rail-icon :global(svg) {
+      width: 16px;
+      height: 16px;
     }
 
     .mobile-dock {

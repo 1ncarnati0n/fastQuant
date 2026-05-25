@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { fetchHealth } from "$lib/api/client";
 
-  let { compact = false }: { compact?: boolean } = $props();
+  let { compact = false, rail = false }: { compact?: boolean; rail?: boolean } = $props();
 
   let status = $state<"checking" | "ok" | "offline">("checking");
   let detail = $state("FastAPI 연결 확인 중");
@@ -19,7 +19,7 @@
   });
 </script>
 
-<div class="api-status" class:compact class:ok={status === "ok"} class:offline={status === "offline"} role="status" aria-label="API 연결 상태">
+<div class="api-status" class:compact class:rail class:ok={status === "ok"} class:offline={status === "offline"} role="status" aria-label="API 연결 상태">
   <span class="dot" aria-hidden="true"></span>
   {#if compact}
     <span class="label">{status === "checking" ? "..." : status}</span>
@@ -107,5 +107,21 @@
   .compact {
     padding: 5px 9px;
     gap: 5px;
+  }
+
+  .rail {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+    padding: 0 4px 13px;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .rail.ok,
+  .rail.offline {
+    border-color: var(--border);
   }
 </style>

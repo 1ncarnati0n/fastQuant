@@ -26,8 +26,8 @@ export function addStcPane(
     const h = indicatorStyles.resolve(KEY, tpl.slots[1]);
     const w = indicatorStyles.resolve(KEY, tpl.slots[2]);
     line.applyOptions({ color: toColor(l), lineWidth: l.width, lineStyle: l.style });
-    hi.applyOptions({   color: toColor({ ...h, opacity: Math.min(h.opacity, 0.5) }), lineWidth: h.width, lineStyle: h.style });
-    lo.applyOptions({   color: toColor({ ...w, opacity: Math.min(w.opacity, 0.5) }), lineWidth: w.width, lineStyle: w.style });
+    hi.applyOptions({   color: toColor(h), lineWidth: h.width, lineStyle: h.style });
+    lo.applyOptions({   color: toColor(w), lineWidth: w.width, lineStyle: w.style });
   }
 
   applyStyle();

@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { AnalysisResponse, FundamentalsResponse, MarketType } from "$lib/api/types";
-  import type { Theme } from "$lib/stores/workspace.svelte";
-  import ApiStatus from "$lib/components/ApiStatus.svelte";
   import { getKrStockLabel } from "$lib/utils/krStocks";
+  import { PRESET_BY_KEY } from "$lib/utils/presets";
 
   let {
     analysis = null,
@@ -11,10 +10,7 @@
     market = "usStock" as MarketType,
     loading = false,
     activeMainTab = "chart",
-    theme = "light" as Theme,
     onSelectMainTab,
-    onToggleTheme,
-    onOpenSettings,
     onOpenSymbolSearch,
   }: {
     analysis?: AnalysisResponse | null;
@@ -23,10 +19,7 @@
     market?: MarketType;
     loading?: boolean;
     activeMainTab?: "chart" | "fundamentals";
-    theme?: Theme;
     onSelectMainTab?: (tab: "chart" | "fundamentals") => void;
-    onToggleTheme?: () => void;
-    onOpenSettings?: () => void;
     onOpenSymbolSearch?: () => void;
   } = $props();
 
@@ -100,9 +93,10 @@
   const yearHigh = $derived(fundamentals?.fiftyTwoWeekHigh ?? null);
   const dayPos = $derived(rangePercent(last?.close, dayLow, dayHigh));
   const yearPos = $derived(rangePercent(last?.close, yearLow, yearHigh));
+  const presetLabel = $derived(PRESET_BY_KEY.get(`${symbol}:${market}`)?.label ?? null);
   const krStockLabel = $derived(market === "krStock" ? getKrStockLabel(symbol) : null);
-  const symbolName = $derived(market === "krStock" ? (krStockLabel ?? fundamentals?.shortName ?? symbol) : symbol);
-  const showSymbolCode = $derived(market === "krStock" && symbolName !== symbol);
+  const companyName = $derived(krStockLabel ?? fundamentals?.shortName ?? presetLabel ?? null);
+  const showCompanyFirst = $derived(market === "krStock" && companyName !== null && companyName !== symbol);
 </script>
 
 <header class="appbar" class:loading>
@@ -114,14 +108,17 @@
       title="심볼 검색"
       aria-label="심볼 검색"
     >
-      <span class="symbol-logo">{(symbolName || "FQ").slice(0, 2)}</span>
+      <span class="symbol-logo">{(showCompanyFirst ? (companyName ?? symbol) : (symbol || "FQ")).slice(0, 2)}</span>
       <span class="symbol-copy">
         <span class="symbol-title">
-          {#if showSymbolCode}
-            <strong>{symbolName}</strong>
+          {#if showCompanyFirst}
+            <strong>{companyName}</strong>
             <span class="symbol-code">{symbol}</span>
           {:else}
             <strong>{symbol || "심볼 선택"}</strong>
+            {#if companyName && companyName !== symbol}
+              <span class="symbol-name">{companyName}</span>
+            {/if}
           {/if}
           <span class="market-chip" style:--badge-color={meta.color}>{meta.label}</span>
         </span>
@@ -174,29 +171,6 @@
       class:active={activeMainTab === "fundamentals"}
       onclick={() => onSelectMainTab?.("fundamentals")}
     >종목정보</button>
-    <div class="main-actions">
-      <ApiStatus compact />
-      <button
-        type="button"
-        class="icon-btn"
-        onclick={onToggleTheme}
-        title={theme === "dark" ? "라이트 모드" : "다크 모드"}
-      >
-        {#if theme === "dark"}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></svg>
-        {:else}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
-        {/if}
-      </button>
-      <button
-        type="button"
-        class="icon-btn"
-        onclick={onOpenSettings}
-        title="설정"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .92 1.7 1.7 0 0 1-3.2 0 1.7 1.7 0 0 0-1-.92 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.92-1 1.7 1.7 0 0 1 0-3.2 1.7 1.7 0 0 0 .92-1 1.7 1.7 0 0 0-.34-1.87l-.06.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.92 1.7 1.7 0 0 1 3.2 0 1.7 1.7 0 0 0 1 .92 1.7 1.7 0 0 0 1.87-.34l.06.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.24.39.57.7.96.89a1.7 1.7 0 0 1 0 3.2c-.39.19-.72.5-.96.91Z" /></svg>
-      </button>
-    </div>
   </nav>
 </header>
 
@@ -278,6 +252,17 @@
     font-size: var(--fs-xs);
     font-weight: 500;
     letter-spacing: 0.03em;
+  }
+
+  .symbol-name {
+    min-width: 0;
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted-fore);
+    font-size: var(--fs-xs);
+    font-weight: 500;
   }
 
   .market-chip {
@@ -410,35 +395,6 @@
 
   @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
-  .main-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    margin-left: auto;
-  }
-
-  .icon-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--muted-bg);
-    color: var(--muted-fore);
-    cursor: pointer;
-    transition: all var(--dur-fast) var(--ease);
-  }
-
-  .icon-btn:hover {
-    color: var(--foreground);
-    border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
-    background: var(--primary-soft);
-  }
-
-
   /* ── Responsive ── */
   @media (max-width: 1180px) {
     .quote-row {
@@ -457,9 +413,6 @@
       grid-column: span 3;
     }
 
-    .main-actions {
-      margin-left: 0;
-    }
   }
 
   @media (max-width: 760px) {
@@ -495,9 +448,5 @@
       padding: 0 12px;
     }
 
-    .main-actions {
-      justify-content: flex-end;
-      width: 100%;
-    }
   }
 </style>

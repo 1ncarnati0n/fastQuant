@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from app.cache.keys import candle_key, ttl_for_interval
 from app.cache.ttl import TTLCache, get_default_cache
 from app.models.market import Candle, DataSource, MarketType
@@ -25,7 +27,7 @@ async def fetch_market_candles(
 
     for source in resolve_source_order(market, plan.source):
         try:
-            key = candle_key(symbol, plan.source, source)
+            key = candle_key(symbol, plan.source, source, source_limit)
             ttl = ttl_for_interval(plan.source)
             cached = await _cache.get(key, ttl)
             if cached is not None:
@@ -58,6 +60,9 @@ def _resample(candles: list[Candle], plan: IntervalPlan) -> list[Candle]:
     if not plan.needs_resample or not candles:
         return candles
 
+    if plan.requested.endswith("Y"):
+        return _resample_calendar_years(candles, max(1, plan.factor // 12))
+
     bucket_seconds = interval_seconds(plan.requested)
     if bucket_seconds is None:
         return candles
@@ -74,6 +79,36 @@ def _resample(candles: list[Candle], plan: IntervalPlan) -> list[Candle]:
                 low=min(prev.low, candle.low),
                 close=candle.close,
                 volume=prev.volume + candle.volume,
+            )
+        else:
+            output.append(
+                Candle(
+                    time=bucket_start,
+                    open=candle.open,
+                    high=candle.high,
+                    low=candle.low,
+                    close=candle.close,
+                    volume=candle.volume,
+                )
+            )
+    return output
+
+
+def _resample_calendar_years(candles: list[Candle], span_years: int) -> list[Candle]:
+    output: list[Candle] = []
+    for candle in candles:
+        year = datetime.fromtimestamp(candle.time, UTC).year
+        bucket_year = year - ((year - 1) % span_years)
+        bucket_start = int(datetime(bucket_year, 1, 1, tzinfo=UTC).timestamp())
+        if output and output[-1].time == bucket_start:
+            previous = output[-1]
+            output[-1] = Candle(
+                time=previous.time,
+                open=previous.open,
+                high=max(previous.high, candle.high),
+                low=min(previous.low, candle.low),
+                close=candle.close,
+                volume=previous.volume + candle.volume,
             )
         else:
             output.append(

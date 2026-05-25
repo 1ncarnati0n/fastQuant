@@ -3,11 +3,21 @@
   import type { MarketType, SymbolSearchResult } from "$lib/api/types";
   import { workspace } from "$lib/stores/workspace.svelte";
   import { getKrStockLabel } from "$lib/utils/krStocks";
+  import { WATCHLIST_FILTERS, WATCHLIST_SORT_OPTIONS, type FilterKey } from "$lib/features/watchlist/panelState";
+  import type { SortMode } from "$lib/utils/presets";
 
   let {
+    filter = "all" as FilterKey,
+    sortMode = "name" as SortMode,
     onSelect = () => {},
+    onFilterChange = () => {},
+    onSortChange = () => {},
   }: {
+    filter?: FilterKey;
+    sortMode?: SortMode;
     onSelect?: (symbol: string, market: MarketType, label?: string) => void;
+    onFilterChange?: (filter: FilterKey) => void;
+    onSortChange?: (sortMode: SortMode) => void;
   } = $props();
 
   let query = $state("");
@@ -61,19 +71,47 @@
 </script>
 
 <div class="search">
-  <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-  </svg>
-  <input
-    bind:value={query}
-    type="search"
-    placeholder="종목 검색"
-    class="search-input"
-    aria-label="종목 검색 후 관심종목 추가"
-  />
-  {#if searching}
-    <div class="spin" aria-label="검색 중"></div>
-  {/if}
+  <div class="search-field">
+    <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+    </svg>
+    <input
+      bind:value={query}
+      type="search"
+      placeholder="종목 검색"
+      class="search-input"
+      aria-label="종목 검색 후 관심종목 추가"
+    />
+    {#if searching}
+      <div class="spin" aria-label="검색 중"></div>
+    {/if}
+  </div>
+
+  <div class="controls">
+    <div class="segments" role="tablist" aria-label="마켓 필터">
+      {#each WATCHLIST_FILTERS as option}
+        <button
+          type="button"
+          role="tab"
+          class="segment-btn"
+          class:active={filter === option.key}
+          aria-selected={filter === option.key}
+          onclick={() => onFilterChange(option.key)}
+        >{option.label}</button>
+      {/each}
+    </div>
+    <div class="segments segments--sort" role="group" aria-label="정렬">
+      {#each WATCHLIST_SORT_OPTIONS as option}
+        <button
+          type="button"
+          class="segment-btn"
+          class:active={sortMode === option.key}
+          aria-pressed={sortMode === option.key}
+          onclick={() => onSortChange(option.key)}
+        >{option.label}</button>
+      {/each}
+    </div>
+  </div>
 
   {#if query.trim().length >= 2}
     <div class="dropdown" role="listbox">
@@ -127,6 +165,14 @@
   .search {
     position: relative;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .search-field {
+    position: relative;
+    width: 100%;
   }
 
   .search-icon {
@@ -141,18 +187,22 @@
   .search-input {
     width: 100%;
     min-width: 0;
-    border: 1px solid var(--line);
-    border-radius: 7px;
-    padding: 9px 34px 9px 30px;
+    height: 42px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 38px 0 34px;
     font: inherit;
     font-size: var(--fs-sm);
-    background: var(--bg);
+    background: color-mix(in srgb, var(--muted-bg) 68%, var(--card));
     color: var(--text);
     outline: none;
     transition: border-color var(--dur-fast) var(--ease);
   }
 
-  .search-input:focus { border-color: var(--accent); }
+  .search-input:focus {
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+    background: var(--card);
+  }
   .search-input::placeholder { color: var(--muted); }
   .search-input::-webkit-search-cancel-button { display: none; }
 
@@ -169,9 +219,54 @@
     animation: spin 0.7s linear infinite;
   }
 
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 2px;
+    min-width: 0;
+  }
+
+  .segments {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .segments--sort {
+    flex-shrink: 0;
+  }
+
+  .segment-btn {
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: var(--fs-2xs);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .segment-btn:hover {
+    color: var(--text);
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+  }
+
+  .segment-btn.active {
+    border-color: transparent;
+    background: color-mix(in srgb, var(--muted-bg) 92%, var(--border));
+    color: var(--foreground);
+    font-weight: 700;
+  }
+
   .dropdown {
     position: absolute;
-    top: calc(100% + 6px);
+    top: calc(100% + 8px);
     left: 0;
     right: 0;
     z-index: 30;

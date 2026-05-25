@@ -31,8 +31,8 @@ export function addRsiPane(
     const o  = indicatorStyles.resolve(KEY, tpl.slots[1]);
     const u  = indicatorStyles.resolve(KEY, tpl.slots[2]);
     line.applyOptions({ color: toColor(l), lineWidth: l.width, lineStyle: l.style });
-    ob.applyOptions({   color: toColor({ ...o, opacity: Math.min(o.opacity, 0.5) }), lineWidth: o.width, lineStyle: o.style });
-    os.applyOptions({   color: toColor({ ...u, opacity: Math.min(u.opacity, 0.5) }), lineWidth: u.width, lineStyle: u.style });
+    ob.applyOptions({   color: toColor(o), lineWidth: o.width, lineStyle: o.style });
+    os.applyOptions({   color: toColor(u), lineWidth: u.width, lineStyle: u.style });
   }
 
   applyStyle();

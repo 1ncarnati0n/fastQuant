@@ -7,8 +7,10 @@ from app.services.market_data.intervals import IntervalPlan
 
 def test_analysis_contract_uses_camel_case(monkeypatch) -> None:
     client = TestClient(app)
+    requested_limits = []
 
     async def fake_fetch_market_candles(symbol, interval, market, output_limit=500):
+        requested_limits.append(output_limit)
         return (
             [
                 Candle(time=1_700_000_000, open=100, high=105, low=99, close=103, volume=1000),
@@ -48,3 +50,4 @@ def test_analysis_contract_uses_camel_case(monkeypatch) -> None:
     assert body["symbol"] == "BTCUSDT"
     assert "bollingerBands" in body
     assert "dataSource" in body
+    assert requested_limits == [1250]

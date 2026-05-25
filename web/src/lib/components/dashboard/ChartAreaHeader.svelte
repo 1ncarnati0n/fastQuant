@@ -247,9 +247,9 @@
     display: grid;
     grid-template-columns: minmax(0, auto) minmax(180px, 1fr);
     align-items: center;
-    min-height: 50px;
-    padding: 0 14px;
-    gap: 14px;
+    min-height: 42px;
+    padding: 0 8px;
+    gap: 8px;
     border-bottom: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
     background: color-mix(in srgb, var(--card) 96%, var(--chart-bg));
     box-shadow: 0 4px 14px color-mix(in srgb, var(--foreground) 8%, transparent);
@@ -258,7 +258,7 @@
   .left-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     min-width: 0;
   }
 
@@ -267,7 +267,7 @@
     align-items: center;
     gap: 1px;
     justify-content: center;
-    padding: 2px;
+    padding: 0;
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -277,8 +277,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 34px;
-    padding: 8px 11px;
+    height: 30px;
+    padding: 0 8px;
     border: 1px solid transparent;
     border-radius: 8px;
     background: transparent;
@@ -291,9 +291,9 @@
   }
 
   .iv--dropdown {
-    gap: 5px;
-    min-width: 62px;
-    padding: 0 10px 0 12px;
+    gap: 3px;
+    min-width: 54px;
+    padding: 0 7px 0 9px;
   }
 
   .iv--dropdown .caret {
@@ -319,10 +319,10 @@
   .minute-menu {
     position: absolute;
     z-index: 60;
-    top: calc(100% + 6px);
+    top: calc(100% + 4px);
     left: 0;
     min-width: 116px;
-    padding: 4px;
+    padding: 3px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: var(--card);
@@ -334,8 +334,8 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    min-height: 32px;
-    padding: 0 12px;
+    min-height: 28px;
+    padding: 0 9px;
     border: 0;
     border-radius: 6px;
     background: transparent;
@@ -374,9 +374,9 @@
   .tool {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    height: 34px;
-    padding: 0 10px;
+    gap: 3px;
+    height: 30px;
+    padding: 0 7px;
     border: 1px solid transparent;
     border-radius: 8px;
     background: transparent;
@@ -397,7 +397,7 @@
     border-color: color-mix(in srgb, var(--primary) 35%, transparent);
   }
 
-  .tool--label { min-width: 74px; }
+  .tool--label { min-width: 62px; }
   .tool--indicator { flex-shrink: 0; }
   .tool.has-count { color: var(--primary); }
 
@@ -405,9 +405,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
     border-radius: var(--radius-full);
     background: var(--primary);
     color: #fff;
@@ -445,7 +445,7 @@
     }
 
     .tools .tool--label span { display: none; }
-    .tools .tool--label { min-width: 30px; }
+    .tools .tool--label { min-width: 28px; }
   }
 
   @media (max-width: 760px) {

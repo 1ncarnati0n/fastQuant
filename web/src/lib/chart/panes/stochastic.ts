@@ -32,8 +32,8 @@ export function addStochasticPane(
     const uu = indicatorStyles.resolve(KEY, tpl.slots[3]);
     k.applyOptions({  color: toColor(sk), lineWidth: sk.width, lineStyle: sk.style });
     d.applyOptions({  color: toColor(sd), lineWidth: sd.width, lineStyle: sd.style });
-    ob.applyOptions({ color: toColor({ ...oo, opacity: Math.min(oo.opacity, 0.5) }), lineWidth: oo.width, lineStyle: oo.style });
-    os.applyOptions({ color: toColor({ ...uu, opacity: Math.min(uu.opacity, 0.5) }), lineWidth: uu.width, lineStyle: uu.style });
+    ob.applyOptions({ color: toColor(oo), lineWidth: oo.width, lineStyle: oo.style });
+    os.applyOptions({ color: toColor(uu), lineWidth: uu.width, lineStyle: uu.style });
   }
 
   applyStyle();

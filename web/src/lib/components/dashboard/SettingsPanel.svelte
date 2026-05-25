@@ -168,21 +168,9 @@
           {:else if active === "appearance"}
             <div class="panel__head">
               <h3 class="panel__title">화면</h3>
-              <p class="panel__desc">테마와 차트 타입.</p>
+              <p class="panel__desc">차트 타입과 축 표시.</p>
             </div>
             <div class="panel__body panel__body--padded">
-              <section class="row">
-                <div class="row__label">
-                  <strong>테마</strong>
-                  <span class="row__hint">현재: {settingsState.theme === "dark" ? "다크" : "라이트"}</span>
-                </div>
-                <div class="row__control">
-                  <button type="button" class="btn" onclick={settingsActions.toggleTheme}>
-                    {settingsState.theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
-                  </button>
-                </div>
-              </section>
-
               <section class="row">
                 <div class="row__label">
                   <strong>차트 타입</strong>

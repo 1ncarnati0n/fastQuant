@@ -23,7 +23,7 @@ export function addCmfPane(
     const l = indicatorStyles.resolve(KEY, tpl.slots[0]);
     const z = indicatorStyles.resolve(KEY, tpl.slots[1]);
     line.applyOptions({ color: toColor(l), lineWidth: l.width, lineStyle: l.style });
-    zero.applyOptions({ color: toColor({ ...z, opacity: Math.min(z.opacity, 0.5) }), lineWidth: z.width, lineStyle: z.style });
+    zero.applyOptions({ color: toColor(z), lineWidth: z.width, lineStyle: z.style });
   }
 
   applyStyle();

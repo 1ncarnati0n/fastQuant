@@ -4,6 +4,8 @@
   import ChartSettingsPanel from "$lib/components/dashboard/ChartSettingsPanel.svelte";
   import type { DockTab } from "$lib/stores/workspace.svelte";
   import type { MarketType } from "$lib/api/types";
+  import type { SortMode } from "$lib/utils/presets";
+  import type { FilterKey } from "$lib/features/watchlist/panelState";
   import type {
     DashboardSettingsActions,
     DashboardSettingsState,
@@ -31,18 +33,26 @@
     onOpenSettings?: () => void;
   } = $props();
 
+  let filter = $state<FilterKey>("all");
+  let sortMode = $state<SortMode>("name");
 </script>
 
 <aside class="dock dock--{variant}">
   {#if activeTab === "watchlist"}
     <div class="dock__header dock__header--search">
-      <WatchlistSearch onSelect={onSelectSymbol} />
+      <WatchlistSearch
+        {filter}
+        {sortMode}
+        onSelect={onSelectSymbol}
+        onFilterChange={(next) => (filter = next)}
+        onSortChange={(next) => (sortMode = next)}
+      />
     </div>
   {:else}
     <div class="dock__header">
       <div class="dock__header-copy">
         <div class="dock__title">설정</div>
-        <div class="dock__subtitle">차트 타입 · 스케일 · 테마</div>
+        <div class="dock__subtitle">차트 타입 · 스케일</div>
       </div>
     </div>
   {/if}
@@ -54,6 +64,8 @@
           {selectedSymbol}
           {selectedMarket}
           {interval}
+          {filter}
+          {sortMode}
           onSelect={onSelectSymbol}
         />
       {/key}
@@ -69,13 +81,9 @@
     flex-direction: column;
     min-height: 0;
     height: 100%;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background:
-      linear-gradient(180deg,
-        color-mix(in srgb, var(--card) 97%, var(--muted-bg)) 0%,
-        var(--card) 100%);
-    box-shadow: var(--shadow-md);
+    border: 0;
+    background: var(--card);
+    box-shadow: none;
     overflow: hidden;
   }
 
@@ -90,18 +98,18 @@
     display: flex;
     justify-content: space-between;
     align-items: start;
-    padding: 22px 24px 18px;
+    padding: 28px 26px 20px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
   }
 
   .dock__header--search {
     display: block;
-    padding: 12px 10px;
+    padding: 18px 18px 16px;
   }
 
   .dock__title {
-    font-size: var(--fs-xl);
+    font-size: var(--fs-2xl);
     font-weight: 800;
     color: var(--foreground);
   }

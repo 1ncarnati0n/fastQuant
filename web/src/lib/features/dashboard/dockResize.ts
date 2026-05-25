@@ -1,7 +1,7 @@
 const MIN_DOCK_WIDTH = 340;
 const MAX_DOCK_WIDTH = 620;
-const RAIL_WIDTH = 64;
-const RESIZER_WIDTH = 14;
+const RAIL_WIDTH = 76;
+const RESIZER_WIDTH = 16;
 const MIN_CHART_WIDTH = 720;
 
 export interface DockResizeParams {

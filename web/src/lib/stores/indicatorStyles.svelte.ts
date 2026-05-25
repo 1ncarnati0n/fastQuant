@@ -118,64 +118,64 @@ export const STYLE_TEMPLATES: Record<string, SlotTemplate> = {
   },
   volume: {
     slots: [
-      { id: "up",   label: "상승 캔들", defaults: { color: "#f04452", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 0.5 }, kind: "histogram" },
-      { id: "down", label: "하락 캔들", defaults: { color: "#4788ff", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 0.5 }, kind: "histogram" },
+      { id: "up",   label: "상승 캔들", defaults: { color: "#f04452", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 1 }, kind: "histogram" },
+      { id: "down", label: "하락 캔들", defaults: { color: "#4788ff", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 1 }, kind: "histogram" },
     ],
   },
   rsi: {
     slots: [
-      { id: "line", label: "RSI",    defaults: defaultLine("#a78bfa", 2) },
+      { id: "line", label: "RSI",    defaults: defaultLine("#a78bfa", 1) },
       { id: "ob",   label: "과매수 (70)", defaults: defaultLine("#a78bfa", 1, 2 as LineStyle) },
       { id: "os",   label: "과매도 (30)", defaults: defaultLine("#a78bfa", 1, 2 as LineStyle) },
     ],
   },
   macd: {
     slots: [
-      { id: "macd",   label: "MACD",       defaults: defaultLine("#38bdf8", 2) },
+      { id: "macd",   label: "MACD",       defaults: defaultLine("#38bdf8", 1) },
       { id: "signal", label: "시그널",     defaults: defaultLine("#fb923c", 1) },
-      { id: "histUp", label: "히스토그램(+)", defaults: { color: "#f04452", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 0.5 }, kind: "histogram" },
-      { id: "histDn", label: "히스토그램(-)", defaults: { color: "#4788ff", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 0.5 }, kind: "histogram" },
+      { id: "histUp", label: "히스토그램(+)", defaults: { color: "#f04452", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 1 }, kind: "histogram" },
+      { id: "histDn", label: "히스토그램(-)", defaults: { color: "#4788ff", width: 1 as LineWidth, style: 0 as LineStyle, opacity: 1 }, kind: "histogram" },
     ],
   },
   stochastic: {
     slots: [
-      { id: "k",  label: "%K",        defaults: defaultLine("#34d399", 2) },
+      { id: "k",  label: "%K",        defaults: defaultLine("#34d399", 1) },
       { id: "d",  label: "%D",        defaults: defaultLine("#f472b6", 1) },
       { id: "ob", label: "과매수 (80)", defaults: defaultLine("#34d399", 1, 2 as LineStyle) },
       { id: "os", label: "과매도 (20)", defaults: defaultLine("#34d399", 1, 2 as LineStyle) },
     ],
   },
-  obv:  { slots: [{ id: "line", label: "OBV",  defaults: defaultLine("#06b6d4", 2) }] },
+  obv:  { slots: [{ id: "line", label: "OBV",  defaults: defaultLine("#06b6d4", 1) }] },
   mfi:  {
     slots: [
-      { id: "line", label: "MFI",       defaults: defaultLine("#818cf8", 2) },
+      { id: "line", label: "MFI",       defaults: defaultLine("#818cf8", 1) },
       { id: "ob",   label: "과매수 (80)", defaults: defaultLine("#818cf8", 1, 2 as LineStyle) },
       { id: "os",   label: "과매도 (20)", defaults: defaultLine("#818cf8", 1, 2 as LineStyle) },
     ],
   },
   cmf:  {
     slots: [
-      { id: "line", label: "CMF",   defaults: defaultLine("#4ade80", 2) },
+      { id: "line", label: "CMF",   defaults: defaultLine("#4ade80", 1) },
       { id: "zero", label: "0 기준선", defaults: defaultLine("#94a3b8", 1, 2 as LineStyle) },
     ],
   },
   adx:  {
     slots: [
-      { id: "adx",    label: "ADX",   defaults: defaultLine("#f8fafc", 2) },
+      { id: "adx",    label: "ADX",   defaults: defaultLine("#f8fafc", 1) },
       { id: "plus",   label: "+DI",   defaults: defaultLine("#f04452", 1) },
       { id: "minus",  label: "-DI",   defaults: defaultLine("#4788ff", 1) },
       { id: "thresh", label: "25 기준선", defaults: defaultLine("#94a3b8", 1, 2 as LineStyle) },
     ],
   },
-  cvd:  { slots: [{ id: "line", label: "CVD",  defaults: defaultLine("#22d3ee", 2) }] },
+  cvd:  { slots: [{ id: "line", label: "CVD",  defaults: defaultLine("#22d3ee", 1) }] },
   stc:  {
     slots: [
-      { id: "line", label: "STC",      defaults: defaultLine("#fb923c", 2) },
+      { id: "line", label: "STC",      defaults: defaultLine("#fb923c", 1) },
       { id: "hi",   label: "상한 (75)", defaults: defaultLine("#fb923c", 1, 2 as LineStyle) },
       { id: "lo",   label: "하한 (25)", defaults: defaultLine("#fb923c", 1, 2 as LineStyle) },
     ],
   },
-  atr:  { slots: [{ id: "line", label: "ATR", defaults: defaultLine("#fbbf24", 2) }] },
+  atr:  { slots: [{ id: "line", label: "ATR", defaults: defaultLine("#fbbf24", 1) }] },
 };
 
 // ── Color helpers ─────────────────────────────────────────────────

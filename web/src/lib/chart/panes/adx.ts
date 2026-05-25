@@ -33,7 +33,7 @@ export function addAdxPane(
     adx.applyOptions({   color: toColor(a), lineWidth: a.width, lineStyle: a.style });
     plus.applyOptions({  color: toColor(p), lineWidth: p.width, lineStyle: p.style });
     minus.applyOptions({ color: toColor(m), lineWidth: m.width, lineStyle: m.style });
-    thr.applyOptions({   color: toColor({ ...x, opacity: Math.min(x.opacity, 0.4) }), lineWidth: x.width, lineStyle: x.style });
+    thr.applyOptions({   color: toColor(x), lineWidth: x.width, lineStyle: x.style });
   }
 
   applyStyle();

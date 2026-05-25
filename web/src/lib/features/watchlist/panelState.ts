@@ -8,20 +8,19 @@ import {
 } from "$lib/utils/presets";
 import { resolveKrStockLabel } from "$lib/utils/krStocks";
 
-export type FilterKey = MarketType | "all";
+export type FilterKey = Exclude<MarketType, "forex"> | "all";
 
 export const WATCHLIST_FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "전체" },
-  { key: "crypto", label: "Crypto" },
-  { key: "usStock", label: "US" },
-  { key: "krStock", label: "KR" },
-  { key: "forex", label: "FX" },
+  { key: "krStock", label: "국장" },
+  { key: "usStock", label: "미장" },
+  { key: "crypto", label: "가상화폐" },
 ];
 
 export const WATCHLIST_SORT_OPTIONS: { key: SortMode; label: string }[] = [
   { key: "name", label: "이름" },
-  { key: "change", label: "변동률" },
-  { key: "volume", label: "거래량" },
+  { key: "change", label: "등락" },
+  { key: "volume", label: "거래" },
 ];
 
 function itemKey(item: { symbol: string; market: MarketType }): `${string}:${MarketType}` {

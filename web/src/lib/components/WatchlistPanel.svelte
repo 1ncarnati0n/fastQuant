@@ -4,8 +4,6 @@
   import { workspace } from "$lib/stores/workspace.svelte";
   import { formatRelative, intervalToRefreshMs, type PresetSymbol, type SortMode } from "$lib/utils/presets";
   import {
-    WATCHLIST_FILTERS,
-    WATCHLIST_SORT_OPTIONS,
     buildWatchlistItems,
     createSparklinePath,
     createWatchlistLabelMap,
@@ -19,11 +17,15 @@
     selectedSymbol = "",
     selectedMarket = "usStock" as MarketType,
     interval = "1d",
+    filter = "all" as FilterKey,
+    sortMode = "name" as SortMode,
     onSelect = () => {},
   }: {
     selectedSymbol?: string;
     selectedMarket?: MarketType;
     interval?: string;
+    filter?: FilterKey;
+    sortMode?: SortMode;
     onSelect?: (symbol: string, market: MarketType, label?: string) => void;
   } = $props();
 
@@ -31,8 +33,6 @@
   let loading = $state(false);
   let refreshing = $state(false);
   let error = $state<string | null>(null);
-  let filter = $state<FilterKey>("all");
-  let sortMode = $state<SortMode>("name");
   let lastUpdatedAt = $state<Date | null>(null);
   let relLabel = $state<string>("대기 중");
 
@@ -142,35 +142,6 @@
 </script>
 
 <div class="panel">
-  <!-- Market filter + sort -->
-  <div class="controls">
-    <div class="filters" role="tablist" aria-label="마켓 필터">
-      {#each WATCHLIST_FILTERS as f}
-        <button
-          type="button"
-          role="tab"
-          class="filter-btn"
-          class:active={filter === f.key}
-          aria-selected={filter === f.key}
-          onclick={() => (filter = f.key)}
-        >{f.label}</button>
-      {/each}
-    </div>
-    <div class="sort" role="group" aria-label="정렬">
-      {#each WATCHLIST_SORT_OPTIONS as s}
-        <button
-          type="button"
-          class="sort-btn"
-          class:active={sortMode === s.key}
-          onclick={() => (sortMode = s.key)}
-          aria-pressed={sortMode === s.key}
-        >
-          {s.label}
-        </button>
-      {/each}
-    </div>
-  </div>
-
   <!-- Update stamp -->
   <div class="updated-row" aria-live="polite">
     <span class="updated-label">
@@ -199,7 +170,8 @@
   <ul class="list">
     {#each visible as snap (snap.symbol + snap.market)}
       {@const active = snap.symbol === selectedSymbol && snap.market === selectedMarket}
-      {@const up = snap.changePct >= 0}
+      {@const rising = snap.changePct > 0}
+      {@const falling = snap.changePct < 0}
       {@const fav = isFavorite(snap.symbol, snap.market)}
       {@const label = labelMap.get(`${snap.symbol}:${snap.market}`)}
       {@const showKrCompanyFirst = snap.market === "krStock" && Boolean(label && label !== snap.symbol)}
@@ -233,7 +205,7 @@
                 <path
                   d={sparklinePath(snap.sparkline)}
                   fill="none"
-                  stroke={up ? "var(--success)" : "var(--danger)"}
+                  stroke={rising ? "var(--candle-up)" : falling ? "var(--candle-down)" : "var(--muted-fore)"}
                   stroke-width="1.5"
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -241,8 +213,8 @@
               {/if}
             </svg>
 
-            <span class="row-chg" class:up class:down={!up}>
-              {up ? "▲" : "▼"} {Math.abs(snap.changePct).toFixed(2)}%
+            <span class="row-chg" class:up={rising} class:down={falling} class:flat={!rising && !falling}>
+              {rising ? "+" : ""}{snap.changePct.toFixed(2)}%
             </span>
           </div>
         </button>
@@ -282,72 +254,10 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    padding: 8px 10px 12px;
+    padding: 14px 18px 20px;
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Filters */
-  .filters {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-  }
-
-  .filter-btn {
-    padding: 4px 10px;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    background: transparent;
-    color: var(--muted);
-    font: inherit;
-    font-size: var(--fs-xs);
-    cursor: pointer;
-    transition: color 0.12s, background 0.12s, border-color 0.12s;
-  }
-
-  .filter-btn:hover { color: var(--text); background: color-mix(in srgb, var(--text) 6%, transparent); }
-  .filter-btn.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-
-  /* Controls: filters + sort on one row */
-  .controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-  }
-
-  .sort {
-    display: inline-flex;
-    gap: 1px;
-    padding: 2px;
-    border: 1px solid var(--line);
-    border-radius: 7px;
-    background: var(--input);
-  }
-
-  .sort-btn {
-    padding: 3px 8px;
-    border: 1px solid transparent;
-    border-radius: 5px;
-    background: transparent;
-    color: var(--muted);
-    font: inherit;
-    font-size: var(--fs-xs);
-    cursor: pointer;
-  }
-
-  .sort-btn:hover { color: var(--text); }
-
-  .sort-btn.active {
-    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-    background: var(--accent-soft);
-    color: var(--accent);
-    font-weight: 700;
-  }
 
   .error-msg {
     font-size: var(--fs-sm);
@@ -361,7 +271,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 6px;
-    padding: 0 2px 6px;
+    padding: 0 2px 13px;
     font-size: var(--fs-2xs);
     color: var(--muted);
   }
@@ -391,7 +301,7 @@
   .list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -401,22 +311,25 @@
     position: relative;
     display: flex;
     align-items: center;
-    border: 1px solid transparent;
-    border-radius: 7px;
-    transition: border-color 0.12s, background 0.12s;
+    min-height: 78px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+    transition: background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
   }
 
-  .row-wrap:hover { background: color-mix(in srgb, var(--text) 4%, transparent); border-color: var(--line); }
-  .row-wrap.active { border-color: var(--accent); background: var(--accent-soft); }
+  .row-wrap:hover { background: color-mix(in srgb, var(--muted-bg) 54%, transparent); }
+  .row-wrap.active {
+    background: color-mix(in srgb, var(--primary) 4%, var(--card));
+    box-shadow: inset 2px 0 var(--primary);
+  }
 
   .row {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 7px 8px;
+    gap: 8px;
+    padding: 13px 9px;
     border: none;
-    border-radius: 7px;
+    border-radius: 0;
     background: transparent;
     color: var(--text);
     cursor: pointer;
@@ -440,9 +353,9 @@
   }
 
   .row-sym {
-    font-size: var(--fs-base);
+    font-size: var(--fs-md);
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -462,7 +375,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: var(--fs-base);
+    font-size: var(--fs-md);
     font-weight: 700;
     color: var(--text);
   }
@@ -476,8 +389,8 @@
   }
 
   .row-price {
-    font-size: var(--fs-base);
-    font-weight: 600;
+    font-size: var(--fs-md);
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     flex-shrink: 0;
@@ -492,30 +405,31 @@
 
   .sparkline {
     width: 100%;
-    max-width: 130px;
-    height: 24px;
+    max-width: 124px;
+    height: 22px;
     overflow: visible;
   }
 
   .row-chg {
-    font-size: var(--fs-xs);
+    font-size: var(--fs-sm);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     flex-shrink: 0;
   }
 
-  .up { color: var(--success); }
-  .down { color: var(--danger); }
+  .up { color: var(--candle-up); }
+  .down { color: var(--candle-down); }
+  .flat { color: var(--muted-fore); }
 
   .fav-btn {
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    margin-right: 4px;
+    width: 28px;
+    height: 28px;
+    margin-right: 1px;
     border: none;
     border-radius: 4px;
     background: transparent;

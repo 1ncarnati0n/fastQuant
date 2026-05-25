@@ -19,16 +19,7 @@
 
 <div class="panel">
 
-  <!-- 테마 -->
   <div class="section-label">화면</div>
-
-  <div class="setting-row">
-    <span class="setting-name">다크 모드</span>
-    <Toggle
-      checked={settingsState.theme === "dark"}
-      onchange={settingsActions.toggleTheme}
-    />
-  </div>
 
   <div class="setting-row">
     <span class="setting-name">시간축 표시</span>

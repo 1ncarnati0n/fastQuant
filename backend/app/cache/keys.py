@@ -1,8 +1,9 @@
 from app.models.market import DataSource
 
 
-def candle_key(symbol: str, interval: str, source: DataSource) -> str:
-    return f"candles:{symbol.upper()}:{source}:{interval}"
+def candle_key(symbol: str, interval: str, source: DataSource, limit: int | None = None) -> str:
+    depth = f":{limit}" if limit is not None else ""
+    return f"candles:{symbol.upper()}:{source}:{interval}{depth}"
 
 
 def snapshot_key(market: str, symbol: str) -> str:

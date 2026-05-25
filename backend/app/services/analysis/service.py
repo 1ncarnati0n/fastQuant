@@ -1,4 +1,4 @@
-from app.models.market import AnalysisParams, AnalysisResponse
+from app.models.market import AnalysisParams, AnalysisResponse, MarketType
 from app.services.analysis.indicators import (
     calculate_adx,
     calculate_anchored_vwap,
@@ -40,12 +40,28 @@ from app.services.analysis.signals import (
 )
 from app.services.market_data.service import fetch_market_candles
 
+DEFAULT_ANALYSIS_OUTPUT_LIMIT = 500
+DAILY_ANALYSIS_OUTPUT_LIMIT = 1250
+LONG_TERM_OUTPUT_LIMITS: dict[MarketType, int] = {
+    "crypto": 1000,
+    "krStock": 1500,
+    "usStock": 2500,
+    "forex": 2500,
+}
+
+
+def analysis_output_limit(interval: str, market: MarketType) -> int:
+    if interval in {"1M", "1Y"}:
+        return LONG_TERM_OUTPUT_LIMITS[market]
+    return DAILY_ANALYSIS_OUTPUT_LIMIT if interval == "1d" else DEFAULT_ANALYSIS_OUTPUT_LIMIT
+
 
 async def analyze_market(params: AnalysisParams) -> AnalysisResponse:
     candles, data_source, plan = await fetch_market_candles(
         symbol=params.symbol,
         interval=params.interval,
         market=params.market,
+        output_limit=analysis_output_limit(params.interval, params.market),
     )
 
     macd_params = normalize_period_params(
